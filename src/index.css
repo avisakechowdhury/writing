@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for better mobile experience */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  /* Mobile-friendly touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better mobile scrolling */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Prose styles for links */
+  .prose a {
+    color: #2563eb !important;
+    text-decoration: underline !important;
+  }
+  
+  .prose a:hover {
+    color: #1d4ed8 !important;
+  }
+  
+  /* Fix for external links */
+  .prose a[href^="http"]:not([href*="localhost"]) {
+    color: #2563eb !important;
+    text-decoration: underline !important;
+  }
+}
