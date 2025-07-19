@@ -54,21 +54,23 @@ const ChatWidget: React.FC = () => {
 
   return (
     <>
-      {/* Chat Toggle Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg transition-all duration-300 z-50 ${
-          isOpen 
-            ? 'bg-neutral-600 hover:bg-neutral-700' 
-            : 'bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600'
-        }`}
-      >
-        {isOpen ? (
-          <X className="w-6 h-6 text-white mx-auto" />
-        ) : (
-          <MessageCircle className="w-6 h-6 text-white mx-auto" />
-        )}
-      </button>
+      {/* Community Chat Toggle Button - Hidden on mobile, shown on desktop */}
+      <div className="hidden lg:block">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg transition-all duration-300 z-50 ${
+            isOpen 
+              ? 'bg-neutral-600 hover:bg-neutral-700' 
+              : 'bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600'
+          }`}
+        >
+          {isOpen ? (
+            <X className="w-6 h-6 text-white mx-auto" />
+          ) : (
+            <MessageCircle className="w-6 h-6 text-white mx-auto" />
+          )}
+        </button>
+      </div>
 
       {/* Chat Window */}
       {isOpen && (
@@ -78,7 +80,7 @@ const ChatWidget: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Users className="w-5 h-5 text-white" />
-                <h3 className="font-semibold text-white">Community Chat</h3>
+                <h3 className="font-semibold text-white">General Chat</h3>
               </div>
               <div className="flex items-center space-x-2">
                 <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
@@ -87,6 +89,7 @@ const ChatWidget: React.FC = () => {
                 </span>
               </div>
             </div>
+            <p className="text-xs text-primary-100 mt-1">Chat with the community in real-time</p>
           </div>
 
           {/* Messages */}

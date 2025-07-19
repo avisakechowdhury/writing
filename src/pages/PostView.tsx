@@ -14,12 +14,17 @@ const PostView: React.FC = () => {
   const { likePost, addComment } = usePosts();
   const [post, setPost] = useState<Post | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [canInteract, setCanInteract] = useState(false);
 
   useEffect(() => {
     if (postId) {
       loadPost();
     }
   }, [postId]);
+  
+  useEffect(() => {
+    setCanInteract(!!user);
+  }, [user]);
 
   const loadPost = async () => {
     try {
@@ -43,7 +48,7 @@ const PostView: React.FC = () => {
   };
 
   const handleLike = (postId: string) => {
-    if (user) {
+    if (canInteract) {
       likePost(postId, user.id);
       // Update local state
       setPost(prev => {
@@ -57,11 +62,13 @@ const PostView: React.FC = () => {
             : [...prev.likedBy, user.id]
         };
       });
+    } else {
+      toast.error('Please login to like posts');
     }
   };
 
   const handleComment = (postId: string, content: string) => {
-    if (user) {
+    if (canInteract) {
       addComment(postId, {
         postId,
         authorId: user.id,
@@ -71,6 +78,8 @@ const PostView: React.FC = () => {
         likedBy: [],
         reactions: []
       });
+    } else {
+      toast.error('Please login to comment on posts');
     }
   };
 

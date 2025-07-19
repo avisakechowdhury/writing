@@ -42,4 +42,10 @@
     color: #2563eb !important;
     text-decoration: underline !important;
   }
+  
+  /* Ensure external links open in new tab */
+  .prose a[href^="http"]:not([href*="localhost"]):not([href*="127.0.0.1"]) {
+    target: _blank;
+    rel: noopener noreferrer;
+  }
 }

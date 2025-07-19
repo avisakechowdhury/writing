@@ -164,6 +164,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
           dangerouslySetInnerHTML={{ 
             __html: isExpanded ? post.content : getPreview(post.content) 
           }}
+          onClick={(e) => {
+            // Handle external links
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'A') {
+              const href = (target as HTMLAnchorElement).href;
+              if (href && !href.includes(window.location.origin)) {
+                e.preventDefault();
+                window.open(href, '_blank', 'noopener,noreferrer');
+              }
+            }
+          }}
         />
         
         {shouldShowReadMore && (

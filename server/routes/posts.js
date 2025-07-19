@@ -88,7 +88,7 @@ router.get('/', optionalAuth, async (req, res) => {
 });
 
 // Get single post (for sharing)
-router.get('/:id', optionalAuth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
       .populate('authorId', 'displayName username')

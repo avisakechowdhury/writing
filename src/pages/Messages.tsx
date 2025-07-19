@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   Send, 
   ArrowLeft, 
@@ -46,6 +46,7 @@ interface Conversation {
 
 const Messages: React.FC = () => {
   const { userId } = useParams<{ userId?: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { sendDirectMessage, onDirectMessage, offDirectMessage } = useSocket();
   
@@ -78,19 +79,23 @@ const Messages: React.FC = () => {
   useEffect(() => {
     // Listen for new direct messages
     const handleDirectMessage = (message: Message) => {
-      if (userId && user && (message.senderId === userId || message.receiverId === userId || message.senderId === user.id || message.receiverId === user.id)) {
+      // Only add message if the current user is the receiver
+      if (
+        user &&
+        userId &&
+        message.receiverId === user.id &&
+        (message.senderId === userId || message.receiverId === userId)
+      ) {
         setMessages(prev => {
           // Prevent duplicates by checking message ID
           const messageId = message.id || (message as any)._id;
           const exists = prev.some(m => (m.id || (m as any)._id) === messageId);
           if (exists) return prev;
-          
           const newMessage = {
             ...message,
             id: messageId,
             timestamp: new Date(message.timestamp)
           };
-          
           return [...prev, newMessage];
         });
       }
@@ -179,12 +184,22 @@ const Messages: React.FC = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="bg-white rounded-2xl shadow-soft border border-neutral-200 overflow-hidden h-[600px] flex">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+      <div className="bg-white rounded-2xl shadow-soft border border-neutral-200 overflow-hidden h-[calc(100vh-8rem)] md:h-[600px] flex flex-col md:flex-row">
         {/* Conversations Sidebar */}
-        <div className="w-1/3 border-r border-neutral-200 flex flex-col">
+        <div className={`${userId ? 'hidden md:flex' : 'flex'} w-full md:w-1/3 border-r border-neutral-200 flex-col`}>
           <div className="p-4 border-b border-neutral-200">
-            <h2 className="text-lg font-semibold text-neutral-900">Messages</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-neutral-900">Messages</h2>
+              {userId && (
+                <button
+                  onClick={() => navigate('/messages')}
+                  className="md:hidden p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+              )}
+            </div>
           </div>
           
           <div className="flex-1 overflow-y-auto">
@@ -232,30 +247,30 @@ const Messages: React.FC = () => {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col">
+        <div className={`${userId ? 'flex' : 'hidden md:flex'} flex-1 flex-col`}>
           {userId && selectedUser ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b border-neutral-200 bg-neutral-50">
+              <div className="p-3 md:p-4 border-b border-neutral-200 bg-gradient-to-r from-primary-50 to-secondary-50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <Link
-                      to="/"
+                    <button
+                      onClick={() => navigate('/messages')}
                       className="p-2 hover:bg-neutral-200 rounded-lg transition-colors md:hidden"
                     >
                       <ArrowLeft className="w-5 h-5" />
-                    </Link>
+                    </button>
                     <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
                       <User className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-neutral-900">{selectedUser.displayName}</h3>
-                      <p className="text-sm text-neutral-500">@{selectedUser.username}</p>
+                      <h3 className="font-semibold text-neutral-900 text-sm md:text-base">{selectedUser.displayName}</h3>
+                      <p className="text-xs md:text-sm text-neutral-500">@{selectedUser.username}</p>
                     </div>
                   </div>
                   <Link
                     to={`/profile/${selectedUser.id}`}
-                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                    className="text-xs md:text-sm text-primary-600 hover:text-primary-700 font-medium px-3 py-1 bg-white rounded-lg shadow-sm"
                   >
                     View Profile
                   </Link>
@@ -263,7 +278,7 @@ const Messages: React.FC = () => {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-gradient-to-b from-neutral-50 to-white">
                 {isLoading ? (
                   <div className="flex justify-center py-8">
                     <div className="w-8 h-8 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
@@ -278,18 +293,17 @@ const Messages: React.FC = () => {
                   messages.map((message, index) => (
                     <div
                       key={`${message.id}-${index}`}
-                      className={`flex ${message.senderId === user.id ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${message.senderId === user.id ? 'justify-end' : 'justify-start'} animate-fade-in-up`}
                     >
                       <div
-                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                        className={`max-w-[75%] md:max-w-xs lg:max-w-md px-3 md:px-4 py-2 md:py-3 rounded-2xl shadow-sm ${
                           message.senderId === user.id
-                            ? 'bg-gradient-to-r from-primary-500 to-secondary-500 text-white'
-                            : 'bg-neutral-100 text-neutral-900'
+                            ? 'bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-br-md'
+                            : 'bg-white border border-neutral-200 text-neutral-900 rounded-bl-md'
                         }`}
                       >
-                        {/* Removed sender label for personal chat */}
-                        <p className="text-sm">{message.content}</p>
-                        <p className={`text-xs mt-1 ${
+                        <p className="text-sm md:text-base leading-relaxed">{message.content}</p>
+                        <p className={`text-xs mt-1 opacity-75 ${
                           message.senderId === user.id ? 'text-white opacity-75' : 'text-neutral-500'
                         }`}>
                           {new Date(message.timestamp).toLocaleTimeString([], { 
@@ -305,25 +319,25 @@ const Messages: React.FC = () => {
               </div>
 
               {/* Message Input */}
-              <form onSubmit={handleSendMessage} className="p-4 border-t border-neutral-200">
-                <div className="flex space-x-2">
+              <form onSubmit={handleSendMessage} className="p-3 md:p-4 border-t border-neutral-200 bg-white">
+                <div className="flex space-x-2 md:space-x-3">
                   <input
                     type="text"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder={`Message ${selectedUser.displayName}...`}
-                    className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="flex-1 px-3 md:px-4 py-2 md:py-3 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm md:text-base"
                     maxLength={1000}
                   />
                   <button
                     type="submit"
                     disabled={!newMessage.trim() || isSending}
-                    className="px-4 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-lg hover:from-primary-600 hover:to-secondary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    className="px-3 md:px-4 py-2 md:py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-xl hover:from-primary-600 hover:to-secondary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
                   >
                     {isSending ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     ) : (
-                      <Send className="w-5 h-5" />
+                      <Send className="w-4 h-4 md:w-5 md:h-5" />
                     )}
                   </button>
                 </div>

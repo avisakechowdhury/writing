@@ -87,23 +87,38 @@ const Navbar: React.FC = () => {
 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-50">
-        <div className="flex items-center justify-around h-16 px-4">
+        <div className="flex items-center justify-around h-16 px-2">
           {navItems.map(({ icon: Icon, label, path }) => (
             <Link
               key={path}
               to={path}
-              className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-all duration-200 ${
+              className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-all duration-200 min-w-0 flex-1 ${
                 isActive(path)
                   ? 'text-primary-600'
                   : 'text-neutral-500'
               }`}
             >
               <Icon className={`w-5 h-5 ${isActive(path) ? 'text-primary-600' : 'text-neutral-500'}`} />
-              <span className={`text-xs font-medium ${isActive(path) ? 'text-primary-600' : 'text-neutral-500'}`}>
+              <span className={`text-xs font-medium truncate ${isActive(path) ? 'text-primary-600' : 'text-neutral-500'}`}>
                 {label}
               </span>
             </Link>
           ))}
+          
+          {/* Settings button for mobile */}
+          <Link
+            to="/settings"
+            className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-all duration-200 min-w-0 flex-1 ${
+              isActive('/settings')
+                ? 'text-primary-600'
+                : 'text-neutral-500'
+            }`}
+          >
+            <Settings className={`w-5 h-5 ${isActive('/settings') ? 'text-primary-600' : 'text-neutral-500'}`} />
+            <span className={`text-xs font-medium truncate ${isActive('/settings') ? 'text-primary-600' : 'text-neutral-500'}`}>
+              Settings
+            </span>
+          </Link>
         </div>
       </nav>
     </>
