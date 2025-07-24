@@ -98,7 +98,7 @@ export const useAuthService = () => {
         socketService.connect(response.token);
       }
       
-      toast.success(`Welcome to DailyWrite, ${userData.displayName}!`);
+      toast.success(`Welcome to WriteAnon, ${userData.displayName}!`);
       
       // Redirect to feed immediately
       window.location.href = '/';

@@ -85,7 +85,7 @@ const Landing: React.FC = () => {
                 <PenTool className="w-4 h-4 text-white" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
-                DailyWrite
+                WriteAnon
               </span>
             </div>
             
@@ -272,11 +272,11 @@ const Landing: React.FC = () => {
               <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
                 <PenTool className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xl font-bold text-white">DailyWrite</span>
+              <span className="text-xl font-bold text-white">WriteAnon</span>
             </div>
             <div className="text-center md:text-right">
-              <p>&copy; 2024 DailyWrite. All rights reserved.</p>
-              <p className="text-sm mt-1">Made with ❤️ for writers everywhere</p>
+              <p>&copy; 2025 WriteAnon. All rights reserved.</p>
+              <p className="text-sm mt-1">Made with ❤️ for you to express yourself without being judged</p>
             </div>
           </div>
         </div>

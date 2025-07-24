@@ -71,7 +71,7 @@ router.post('/test', authenticate, async (req, res) => {
     
     const payload = JSON.stringify({
       title: 'Test Notification',
-      body: 'This is a test notification from DailyWrite!',
+      body: 'This is a test notification from WriteAnon!',
       icon: '/icon-192x192.png',
       badge: '/badge-72x72.png'
     });

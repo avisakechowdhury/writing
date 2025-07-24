@@ -93,7 +93,7 @@ const Settings: React.FC = () => {
         {/* Header */}
         <div className="bg-gradient-to-r from-primary-500 to-secondary-600 p-8">
           <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-          <p className="text-primary-100">Customize your DailyWrite experience</p>
+          <p className="text-primary-100">Customize your WriteAnon experience</p>
         </div>
 
         <div className="p-8 space-y-8">

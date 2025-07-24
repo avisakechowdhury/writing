@@ -133,7 +133,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
             <User className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-neutral-900 mb-2">
-            {mode === 'login' ? 'Welcome Back' : 'Join DailyWrite'}
+            {mode === 'login' ? 'Welcome Back' : 'Join WriteAnon'}
           </h2>
           <p className="text-neutral-600">
             {mode === 'login' 

@@ -40,7 +40,7 @@ const Navbar: React.FC = () => {
                   <PenTool className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
-                  DailyWrite
+                  WriteAnon
                 </span>
               </Link>
               
