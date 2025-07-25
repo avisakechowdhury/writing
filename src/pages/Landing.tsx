@@ -84,7 +84,7 @@ const Landing: React.FC = () => {
               <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
                 <PenTool className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+              <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
                 WriteAnon
               </span>
             </div>
@@ -117,6 +117,9 @@ const Landing: React.FC = () => {
                 Writing
               </span>
             </h1>
+            <p className="text-xl sm:text-2xl text-primary-600 font-medium italic mb-4">
+              Your story. Your secret.
+            </p>
             <p className="text-xl text-neutral-600 mb-8 max-w-3xl mx-auto leading-relaxed">
               Join a supportive community of writers. Share your thoughts anonymously or publicly, 
               build daily writing habits, and discover the joy of expression without judgment.
@@ -177,79 +180,15 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Social Proof Section */}
-      <section className="py-20 bg-gradient-to-br from-neutral-50 to-neutral-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-neutral-900 mb-4">
-              Join Thousands of Writers
-            </h2>
-            <p className="text-xl text-neutral-600">
-              See what our community members are saying about their writing journey
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white rounded-2xl p-8 shadow-soft border border-neutral-200">
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white text-xl mr-4">
-                    {testimonial.avatar}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-neutral-900">{testimonial.name}</h4>
-                    <p className="text-sm text-neutral-600">{testimonial.role}</p>
-                  </div>
-                </div>
-                <p className="text-neutral-700 leading-relaxed italic">
-                  "{testimonial.content}"
-                </p>
-                <div className="flex items-center mt-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-accent-500 fill-current" />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-4">
-                <Heart className="w-8 h-8 text-error-500 mr-2" />
-                <span className="text-4xl font-bold text-neutral-900">10K+</span>
-              </div>
-              <p className="text-neutral-600">Posts shared with love</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-4">
-                <MessageCircle className="w-8 h-8 text-primary-500 mr-2" />
-                <span className="text-4xl font-bold text-neutral-900">25K+</span>
-              </div>
-              <p className="text-neutral-600">Supportive comments</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-4">
-                <TrendingUp className="w-8 h-8 text-success-500 mr-2" />
-                <span className="text-4xl font-bold text-neutral-900">85%</span>
-              </div>
-              <p className="text-neutral-600">Users write daily after 30 days</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-br from-primary-500 to-secondary-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold text-white mb-6">
             Ready to Start Your Writing Journey?
           </h2>
+          <p className="text-2xl text-primary-100 font-medium italic mb-4">
+            Your story. Your secret.
+          </p>
           <p className="text-xl text-primary-100 mb-8 leading-relaxed">
             Join our community today and discover the writer within you. 
             Start with just a few words, and watch your confidence grow.
@@ -272,11 +211,14 @@ const Landing: React.FC = () => {
               <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
                 <PenTool className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xl font-bold text-white">WriteAnon</span>
+              <div>
+                <span className="text-xl font-bold text-white">WriteAnon</span>
+                <p className="text-xs text-primary-100 italic">Your story. Your secret.</p>
+              </div>
             </div>
             <div className="text-center md:text-right">
               <p>&copy; 2025 WriteAnon. All rights reserved.</p>
-              <p className="text-sm mt-1">Made with ❤️ for you to express yourself without being judged</p>
+              <p className="text-sm mt-1">Made with ❤️ for writers who value privacy</p>
             </div>
           </div>
         </div>

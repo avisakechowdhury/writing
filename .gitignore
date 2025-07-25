@@ -27,3 +27,5 @@ dist-ssr
 server/scripts
 
 server/.env.example
+.env.production
+

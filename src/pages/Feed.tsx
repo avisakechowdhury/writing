@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus } from 'lucide-react';
+import { Search, Filter, Plus, PenTool } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PostCard from '../components/Post/PostCard';
 import { usePosts } from '../hooks/usePosts';
@@ -46,8 +46,16 @@ const Feed: React.FC = () => {
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-900 mb-2">Community Feed</h1>
-            <p className="text-neutral-600">Discover inspiring stories from writers around the world</p>
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
+                <PenTool className="w-4 h-4 text-white" />
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+                WriteAnon
+              </h1>
+            </div>
+            <p className="text-base sm:text-lg text-neutral-600 italic mb-2">Your story. Your secret.</p>
+            <p className="text-sm sm:text-base text-neutral-500">Discover inspiring stories from writers around the world</p>
           </div>
           <Link
             to="/write"

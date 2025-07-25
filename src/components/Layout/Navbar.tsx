@@ -39,9 +39,12 @@ const Navbar: React.FC = () => {
                 <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
                   <PenTool className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
-                  WriteAnon
-                </span>
+                <div>
+                  <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+                    WriteAnon
+                  </span>
+                  <p className="text-xs text-neutral-500 italic -mt-1">Your story. Your secret.</p>
+                </div>
               </Link>
               
               <div className="flex space-x-1">
