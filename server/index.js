@@ -22,8 +22,13 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    methods: ["GET", "POST"]
+    origin: [
+      process.env.CLIENT_URL || "http://localhost:5173",
+      "https://anonwriter.vercel.app",
+      "https://www.writeanon.in", // Add the frontend origin
+      "http://localhost:5173"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
   }
 });
 
@@ -31,14 +36,17 @@ const io = new Server(server, {
 connectDB();
 
 // Security middleware
+const allowedOrigins = [
+  ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : ["http://localhost:5173"]),
+  "https://anonwriter.vercel.app",
+  "https://www.writeanon.in",
+  "http://localhost:5173"
+].filter(Boolean);
 app.use(helmet());
 app.use(cors({
-  origin: [
-    process.env.CLIENT_URL || "http://localhost:5173",
-    "https://anonwriter.vercel.app",
-    "http://localhost:5173"
-  ],
-  credentials: true
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 }));
 
 // Rate limiting
