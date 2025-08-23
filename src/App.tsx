@@ -11,6 +11,7 @@ import UserProfile from './pages/UserProfile';
 import Messages from './pages/Messages';
 import Settings from './pages/Settings';
 import PostView from './pages/PostView';
+import RandomChat from './pages/RandomChat';
 import ChatWidget from './components/Chat/ChatWidget';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useAuthService } from './hooks/useAuth';
@@ -68,11 +69,7 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<Layout />}>
             <Route 
               index 
-              element={
-                <ProtectedRoute>
-                  <Feed />
-                </ProtectedRoute>
-              } 
+              element={<Feed />}
             />
             <Route 
               path="write" 
@@ -135,6 +132,14 @@ const AppContent: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <PostView />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="random-chat" 
+              element={
+                <ProtectedRoute>
+                  <RandomChat />
                 </ProtectedRoute>
               } 
             />

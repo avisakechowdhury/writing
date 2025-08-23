@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { X, Mail, Lock, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Eye, EyeOff, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -8,19 +9,41 @@ interface AuthModalProps {
   initialMode?: 'login' | 'signup';
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'login' }) => {
+
+
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'signup' }) => {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  const { login, signup } = useAuth();
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    confirmPassword: '',
     username: '',
     displayName: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { login, signup, isLoading } = useAuth();
 
-  // Update mode when initialMode changes
-  React.useEffect(() => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  useEffect(() => {
     setMode(initialMode);
   }, [initialMode]);
 
@@ -28,43 +51,54 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (isLoading) return; // Prevent multiple submissions
+    setIsLoading(true);
     
     setErrors({});
 
     // Validation
     if (!formData.email || !formData.password) {
       setErrors({ general: 'Email and password are required' });
+      setIsLoading(false);
       return;
     }
 
     if (mode === 'signup') {
       if (!formData.username || !formData.displayName) {
         setErrors({ general: 'Username and display name are required' });
+        setIsLoading(false);
         return;
       }
       
       // Frontend validation for username
       if (formData.username.length < 3) {
         setErrors({ username: 'Username must be at least 3 characters long' });
+        setIsLoading(false);
         return;
       }
       
       if (formData.username.length > 30) {
         setErrors({ username: 'Username must be 30 characters or less' });
+        setIsLoading(false);
         return;
       }
       
       // Check username format
       if (!/^[a-zA-Z0-9._-]+$/.test(formData.username)) {
         setErrors({ username: 'Username can only contain letters, numbers, dots, underscores, and hyphens' });
+        setIsLoading(false);
         return;
       }
       
       // Frontend validation for password
       if (formData.password.length < 6) {
         setErrors({ password: 'Password must be at least 6 characters long' });
+        setIsLoading(false);
+        return;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        setErrors({ confirmPassword: 'Passwords do not match' });
+        setIsLoading(false);
         return;
       }
     }
@@ -72,57 +106,61 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
     try {
       if (mode === 'login') {
         await login(formData.email, formData.password);
+        toast.success('Welcome back!');
       } else {
         await signup(formData.email, formData.password, formData.username, formData.displayName);
+        toast.success('Account created successfully!');
       }
-      
-      // Don't close modal immediately, let the redirect happen
-      setTimeout(() => {
-        onClose();
-        setFormData({
-          email: '',
-          password: '',
-          username: '',
-          displayName: ''
-        });
-      }, 1000);
+      onClose();
+      resetForm();
     } catch (error: any) {
       console.error('Auth error:', error);
-      let message = 'Authentication failed. Please try again.';
-      
-      if (error.response?.status === 429) {
-        message = 'Too many login attempts. Please wait a moment and try again.';
-      } else if (error.response?.data?.message) {
-        message = error.response.data.message;
-      }
-      
-      setErrors({ general: message });
+      const message = error.response?.data?.message || 'Authentication failed';
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
+  const resetForm = () => {
+    setFormData({
+      email: '',
+      password: '',
+      confirmPassword: '',
+      username: '',
+      displayName: ''
+    });
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    setErrors({});
+  };
+
+  const handleClose = () => {
+    if (!isLoading) {
+      onClose();
+      resetForm();
+    }
   };
 
   const switchMode = () => {
     setMode(mode === 'login' ? 'signup' : 'login');
     setErrors({});
-    setFormData({
-      email: '',
-      password: '',
-      username: '',
-      displayName: ''
-    });
+    resetForm();
+  };
+
+  const togglePasswordVisibility = (field: 'password' | 'confirmPassword') => {
+    if (field === 'password') {
+      setShowPassword(prev => !prev);
+    } else {
+      setShowConfirmPassword(prev => !prev);
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl p-8 w-full max-w-md relative animate-scale-in">
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 p-2 hover:bg-neutral-100 rounded-full transition-colors"
         >
           <X className="w-5 h-5" />
@@ -231,7 +269,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
@@ -242,11 +280,51 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                 required
                 minLength={6}
               />
+              <button
+                type="button"
+                onClick={() => togglePasswordVisibility('password')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
             {errors.password && (
               <p className="mt-1 text-sm text-error-600">{errors.password}</p>
             )}
           </div>
+
+          {mode === 'signup' && (
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                    errors.confirmPassword ? 'border-error-300 focus:ring-error-500' : 'border-neutral-300'
+                  }`}
+                  placeholder="Confirm your password"
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePasswordVisibility('confirmPassword')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-error-600">{errors.confirmPassword}</p>
+              )}
+            </div>
+          )}
 
           {errors.general && (
             <div className="p-3 bg-error-50 border border-error-200 rounded-lg">
@@ -259,7 +337,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
             disabled={isLoading}
             className="w-full py-3 px-4 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold rounded-lg hover:from-primary-600 hover:to-secondary-600 transition-all duration-200 disabled:opacity-50"
           >
-            {isLoading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+            ) : (
+              mode === 'login' ? 'Sign In' : 'Create Account'
+            )}
           </button>
         </form>
 

@@ -1,10 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import Navbar from './Navbar';
+import AuthModal from '../Auth/AuthModal';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Layout: React.FC = () => {
   const { user, isLoading } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
+
+  // Handle global auth modal function
+  useEffect(() => {
+    const handleGlobalAuthModal = (mode?: 'login' | 'signup') => {
+      setAuthMode(mode || 'signup');
+      setShowAuthModal(true);
+    };
+
+    // Set up the global function
+    (window as any).showAuthModalGlobal = handleGlobalAuthModal;
+
+    return () => {
+      delete (window as any).showAuthModalGlobal;
+    };
+  }, []);
 
   // If loading, show loading state
   if (isLoading) {
@@ -18,9 +36,17 @@ const Layout: React.FC = () => {
     );
   }
 
-  // If no user, redirect to landing
+  // If no user, allow access to feed but redirect other protected routes
   if (!user) {
-    return <Navigate to="/landing" replace />;
+    // Allow access to feed for anonymous reading
+      return (
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
+      <Navbar />
+      <main className="pt-16 md:pt-20 pb-20 md:pb-8 min-h-screen">
+        <Outlet />
+      </main>
+    </div>
+  );
   }
 
   return (
@@ -29,6 +55,11 @@ const Layout: React.FC = () => {
       <main className="pt-16 md:pt-20 pb-20 md:pb-8 min-h-screen">
         <Outlet />
       </main>
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+        initialMode={authMode}
+      />
     </div>
   );
 };

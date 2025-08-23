@@ -3,17 +3,20 @@ import { Send, Heart, User, Clock, MessageCircle } from 'lucide-react';
 import { Comment } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
+import { redirectToLanding } from '../../utils/toastUtils';
 
 interface CommentSectionProps {
   postId: string;
   comments: Comment[];
   onAddComment: (postId: string, content: string) => void;
+  onLikeComment?: (commentId: string) => void;
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({ 
   postId, 
   comments, 
-  onAddComment 
+  onAddComment,
+  onLikeComment
 }) => {
   const { user } = useAuth();
   const [newComment, setNewComment] = useState('');
@@ -21,7 +24,12 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || !user) return;
+    if (!newComment.trim()) return;
+    
+    if (!user) {
+      redirectToLanding();
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -29,6 +37,17 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       setNewComment('');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleLikeComment = (commentId: string) => {
+    if (!user) {
+      redirectToLanding();
+      return;
+    }
+    
+    if (onLikeComment) {
+      onLikeComment(commentId);
     }
   };
 
@@ -92,7 +111,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                     {comment.content}
                   </p>
                   <div className="flex items-center space-x-4 mt-2">
-                    <button className="flex items-center space-x-1 text-xs text-neutral-500 hover:text-error-600 transition-colors">
+                    <button 
+                      onClick={() => handleLikeComment(comment.id)}
+                      className={`flex items-center space-x-1 text-xs transition-colors ${
+                        user && comment.likedBy.includes(user.id)
+                          ? 'text-error-600'
+                          : 'text-neutral-500 hover:text-error-600'
+                      }`}
+                    >
                       <Heart className="w-3 h-3" />
                       <span>{comment.likes}</span>
                     </button>

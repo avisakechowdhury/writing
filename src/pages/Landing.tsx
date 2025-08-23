@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   PenTool, 
   Users, 
@@ -120,10 +121,15 @@ const Landing: React.FC = () => {
             <p className="text-xl sm:text-2xl text-primary-600 font-medium italic mb-4">
               Your story. Your secret.
             </p>
-            <p className="text-xl text-neutral-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl text-neutral-600 mb-4 max-w-3xl mx-auto leading-relaxed">
               Join a supportive community of writers. Share your thoughts anonymously or publicly, 
               build daily writing habits, and discover the joy of expression without judgment.
             </p>
+            <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-2xl mx-auto">
+              <p className="text-blue-800 font-medium">
+                Please login to write posts, like content, or comment on stories.
+              </p>
+            </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={handleGetStarted}
@@ -132,9 +138,13 @@ const Landing: React.FC = () => {
                 <span>Start Writing Today</span>
                 <ArrowRight className="w-5 h-5" />
               </button>
-              <button className="px-8 py-4 border-2 border-neutral-300 text-neutral-700 font-semibold rounded-xl hover:border-neutral-400 hover:bg-neutral-50 transition-all duration-200">
-                Learn More
-              </button>
+              <Link
+                to="/"
+                className="px-8 py-4 border-2 border-neutral-300 text-neutral-700 font-semibold rounded-xl hover:border-neutral-400 hover:bg-neutral-50 transition-all duration-200 flex items-center justify-center space-x-2"
+              >
+                <span>Read Posts</span>
+                <MessageCircle className="w-5 h-5" />
+              </Link>
             </div>
           </div>
         </div>

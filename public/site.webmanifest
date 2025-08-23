@@ -1,0 +1,16 @@
+{
+  "name": "WriteAnon",
+  "short_name": "WriteAnon",
+  "description": "Your story. Your secret. - Anonymous writing community",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#6366f1",
+  "background_color": "#ffffff"
+}

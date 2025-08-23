@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Heart, 
   MessageCircle, 
@@ -8,13 +8,18 @@ import {
   Eye,
   ChevronDown,
   ChevronUp,
-  MessageSquare
+  MessageSquare,
+  Flag,
+  MoreHorizontal
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Post } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { format, formatDistanceToNow } from 'date-fns';
 import CommentSection from './CommentSection';
+import ReportModal from '../ReportModal';
+import toast from 'react-hot-toast';
+import { showAuthRequiredToastSimple } from '../../utils/toastUtils';
 
 interface PostCardProps {
   post: Post;
@@ -26,14 +31,36 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close more menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setShowMoreMenu(false);
+      }
+    };
+
+    if (showMoreMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMoreMenu]);
 
   const isLiked = user ? post.likedBy.includes(user.id) : false;
   const timeAgo = formatDistanceToNow(post.createdAt, { addSuffix: true });
 
   const handleLike = () => {
-    if (user) {
-      onLike(post.id);
+    if (!user) {
+      showAuthRequiredToastSimple('like posts');
+      return;
     }
+    onLike(post.id);
   };
 
   const handleShare = async () => {
@@ -149,6 +176,32 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
                 <MessageSquare className="w-4 h-4" />
               </Link>
             )}
+
+            {/* More options menu */}
+            <div className="relative" ref={moreMenuRef}>
+              <button
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                className="p-2 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded-lg transition-all duration-200"
+                title="More options"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+              
+              {showMoreMenu && (
+                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-10">
+                  <button
+                    onClick={() => {
+                      setShowReportModal(true);
+                      setShowMoreMenu(false);
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 flex items-center space-x-2"
+                  >
+                    <Flag className="w-4 h-4" />
+                    <span>Report post</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -246,8 +299,21 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
           postId={post.id}
           comments={post.comments}
           onAddComment={onComment}
+          onLikeComment={(commentId) => {
+            // TODO: Implement comment liking in parent component
+            console.log('Like comment:', commentId);
+          }}
         />
       )}
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        reportedItemType="post"
+        reportedItemId={post.id}
+        reportedItemTitle={post.title}
+      />
     </div>
   );
 };

@@ -1,30 +1,99 @@
 <!doctype html>
 <html lang="en">
   <head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/png" href="/logo.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WriteAnon - Your story. Your secret.</title>
-  <meta
-    name="description"
-    content="WriteAnon - Your story. Your secret. Join a supportive community of writers. Share your thoughts anonymously or publicly, build daily writing habits, and discover the joy of expression without judgment."
-  />
-  <meta property="og:title" content="WriteAnon - Your story. Your secret." />
-  <meta
-    property="og:description"
-    content="Join a supportive community of writers. Share your thoughts anonymously or publicly."
-  />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://anonwriter.vercel.app" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-    rel="stylesheet"
-  />
-</head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Primary meta -->
+    <title>WriteAnon — Your story. Your secret. | Anonymous writing community</title>
+    <meta name="description" content="WriteAnon: Share your thoughts anonymously or publicly. Build daily writing habits, find support, and express yourself without judgment. Join our community today." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://writeanon.in/" />
+
+    <!-- Favicons (PNG fallback + SVG + Apple) -->
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="icon" type="image/svg+xml" href="https://writeanon.in/assets/favicon.svg" />
+    <link rel="apple-touch-icon" href="https://writeanon.in/assets/apple-touch-icon.png" />
+    <meta name="theme-color" content="#ffffff" />
+
+    <!-- Open Graph / Social (use absolute URLs) -->
+    <meta property="og:site_name" content="WriteAnon" />
+    <meta property="og:title" content="WriteAnon — Your story. Your secret." />
+    <meta property="og:description" content="Share your thoughts anonymously or publicly. Build daily writing habits, find support, and express yourself without judgment." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://writeanon.in/" />
+    <meta property="og:image" content="https://writeanon.in/assets/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="WriteAnon — anonymous writing community" />
+
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@writeanon" />
+    <meta name="twitter:title" content="WriteAnon — Your story. Your secret." />
+    <meta name="twitter:description" content="Share your thoughts anonymously or publicly. Build daily writing habits, find support, and express yourself without judgment." />
+    <meta name="twitter:image" content="https://writeanon.in/assets/og-image.png" />
+
+    <!-- Preconnect / Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Sitemap & manifest (optional if you have them) -->
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
+
+    <!-- JSON-LD structured data (Organization + WebSite) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://writeanon.in/#org",
+            "name": "WriteAnon",
+            "url": "https://writeanon.in/",
+            "logo": "https://writeanon.in/assets/logo.png",
+            "sameAs": [
+              "https://x.com/writeanon"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://writeanon.in/#website",
+            "url": "https://writeanon.in/",
+            "name": "WriteAnon",
+            "publisher": {
+              "@id": "https://writeanon.in/#org"
+            },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://writeanon.in/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
+
+    <!-- Optional: small inline CSS to avoid FOIT for critical fonts (keep minimal) -->
+    <style>
+      html { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+    </style>
+  </head>
+
   <body>
     <div id="root"></div>
+
+    <!-- No-JS fallback -->
+    <noscript>
+      <div style="padding:1rem; background:#fff8e6; color:#111;">
+        JavaScript is required to use WriteAnon. Please enable JavaScript or try a modern browser.
+      </div>
+    </noscript>
+
+    <!-- App entry -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

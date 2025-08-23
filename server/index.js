@@ -12,6 +12,8 @@ import userRoutes from './routes/users.js';
 import chatRoutes from './routes/chat.js';
 import messageRoutes from './routes/messages.js';
 import notificationRoutes from './routes/notifications.js';
+import randomChatRoutes from './routes/randomChat.js';
+import reportRoutes from './routes/reports.js';
 import { authenticateSocket } from './middleware/auth.js';
 import { setupCronJobs } from './services/cronJobs.js';
 import Message from './models/Message.js';
@@ -76,6 +78,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/random-chat', randomChatRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -169,6 +173,29 @@ io.on('connection', (socket) => {
   socket.on('typing_stop', (data) => {
     socket.to(`user_${data.receiverId}`).emit('user_stopped_typing', {
       userId: socket.userId
+    });
+  });
+
+  // Handle random chat events
+  socket.on('join_random_chat', (data) => {
+    socket.join(`random_chat_${data.sessionId}`);
+  });
+
+  socket.on('leave_random_chat', (data) => {
+    socket.leave(`random_chat_${data.sessionId}`);
+  });
+
+  socket.on('random_chat_typing_start', (data) => {
+    socket.to(`random_chat_${data.sessionId}`).emit('random_chat_typing', {
+      userId: socket.userId,
+      sessionId: data.sessionId
+    });
+  });
+
+  socket.on('random_chat_typing_stop', (data) => {
+    socket.to(`random_chat_${data.sessionId}`).emit('random_chat_stopped_typing', {
+      userId: socket.userId,
+      sessionId: data.sessionId
     });
   });
   

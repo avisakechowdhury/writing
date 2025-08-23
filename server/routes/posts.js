@@ -8,7 +8,7 @@ import { sendPushNotification } from '../services/sendPushNotification.js';
 const router = express.Router();
 
 // Get all posts (public feed)
-router.get('/', optionalAuth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -98,10 +98,14 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
     
+    // Generate preview content for social sharing
+    const previewContent = post.content.replace(/<[^>]*>/g, '').substring(0, 200);
+    
     const transformedPost = {
       id: post._id,
       title: post.title,
       content: post.content,
+      preview: previewContent,
       authorId: post.authorId._id,
       authorName: post.isAnonymous ? 'Anonymous' : post.authorName,
       isAnonymous: post.isAnonymous,

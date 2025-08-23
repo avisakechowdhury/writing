@@ -83,6 +83,7 @@ export const useSocket = () => {
   return {
     messages,
     isConnected,
+    socket: socketService.getSocket(),
     sendMessage,
     sendDirectMessage,
     onDirectMessage,

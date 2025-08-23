@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Share2 } from 'lucide-react';
+import { ArrowLeft, Share2, Heart, MessageCircle } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 import PostCard from '../components/Post/PostCard';
 import { Post } from '../types';
 import { postsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { usePosts } from '../hooks/usePosts';
 import toast from 'react-hot-toast';
+import { showAuthRequiredToastSimple } from '../utils/toastUtils';
 
 const PostView: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
@@ -48,7 +50,12 @@ const PostView: React.FC = () => {
   };
 
   const handleLike = (postId: string) => {
-    if (canInteract) {
+    if (!user) {
+      showAuthRequiredToastSimple('like posts');
+      return;
+    }
+    
+    if (user) {
       likePost(postId, user.id);
       // Update local state
       setPost(prev => {
@@ -62,13 +69,16 @@ const PostView: React.FC = () => {
             : [...prev.likedBy, user.id]
         };
       });
-    } else {
-      toast.error('Please login to like posts');
     }
   };
 
   const handleComment = (postId: string, content: string) => {
-    if (canInteract) {
+    if (!user) {
+      showAuthRequiredToastSimple('comment on posts');
+      return;
+    }
+    
+    if (user) {
       addComment(postId, {
         postId,
         authorId: user.id,
@@ -78,8 +88,6 @@ const PostView: React.FC = () => {
         likedBy: [],
         reactions: []
       });
-    } else {
-      toast.error('Please login to comment on posts');
     }
   };
 
@@ -129,6 +137,22 @@ const PostView: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {post && (
+        <Helmet>
+          <title>{post.title} - WriteAnon</title>
+          <meta name="description" content={post.content.replace(/<[^>]*>/g, '').substring(0, 160)} />
+          <meta property="og:title" content={post.title} />
+          <meta property="og:description" content={post.content.replace(/<[^>]*>/g, '').substring(0, 200)} />
+          <meta property="og:type" content="article" />
+          <meta property="og:url" content={`https://anonwriter.vercel.app/post/${post.id}`} />
+          <meta property="og:image" content="/Gemini_Generated_Image_p3k1qbp3k1qbp3k1.png" />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={post.title} />
+          <meta name="twitter:description" content={post.content.replace(/<[^>]*>/g, '').substring(0, 200)} />
+          <meta name="twitter:image" content="/Gemini_Generated_Image_p3k1qbp3k1qbp3k1.png" />
+        </Helmet>
+      )}
+      
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <Link

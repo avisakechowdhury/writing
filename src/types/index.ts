@@ -16,6 +16,39 @@ export interface User {
   };
 }
 
+export interface RandomChatSession {
+  sessionId: string;
+  status: 'searching' | 'active' | 'ended';
+  topic: string;
+  isAnonymous: boolean;
+  messages: RandomChatMessage[];
+  partner?: {
+    id: string;
+    name: string;
+    isAnonymous: boolean;
+  };
+  startedAt: Date;
+}
+
+export interface RandomChatMessage {
+  id: string;
+  senderId?: string;
+  content: string;
+  timestamp: Date;
+  isSystem?: boolean;
+  isOwn?: boolean;
+}
+
+export interface Report {
+  id: string;
+  reportedItemType: 'post' | 'comment' | 'chat_message' | 'user';
+  reportedItemId: string;
+  reason: 'spam' | 'inappropriate_content' | 'harassment' | 'hate_speech' | 'violence' | 'misinformation' | 'copyright_violation' | 'other';
+  description: string;
+  status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+  createdAt: Date;
+}
+
 export interface Post {
   id: string;
   title: string;

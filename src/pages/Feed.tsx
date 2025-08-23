@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import PostCard from '../components/Post/PostCard';
 import { usePosts } from '../hooks/usePosts';
 import { useAuth } from '../contexts/AuthContext';
+import { showAuthRequiredToastSimple, redirectToLanding } from '../utils/toastUtils';
 
 const Feed: React.FC = () => {
   const { posts, isLoading, likePost, addComment } = usePosts();
@@ -19,12 +20,22 @@ const Feed: React.FC = () => {
   });
 
   const handleLike = (postId: string) => {
+    if (!user) {
+      showAuthRequiredToastSimple('like posts');
+      return;
+    }
+    
     if (user) {
       likePost(postId, user.id);
     }
   };
 
   const handleComment = (postId: string, content: string) => {
+    if (!user) {
+      redirectToLanding();
+      return;
+    }
+    
     if (user) {
       addComment(postId, {
         postId,
@@ -38,6 +49,15 @@ const Feed: React.FC = () => {
     }
   };
 
+  const handleLikeComment = (commentId: string) => {
+    if (!user) {
+      redirectToLanding();
+      return;
+    }
+    
+    // TODO: Implement comment liking functionality
+    console.log('Like comment:', commentId);
+  };
   const moods = ['all', 'happy', 'peaceful', 'grateful', 'anxious', 'sad'];
 
   return (
@@ -149,6 +169,7 @@ const Feed: React.FC = () => {
               post={post}
               onLike={handleLike}
               onComment={handleComment}
+              onLikeComment={handleLikeComment}
             />
           ))}
         </div>

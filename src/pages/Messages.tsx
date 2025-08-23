@@ -79,24 +79,38 @@ const Messages: React.FC = () => {
   useEffect(() => {
     // Listen for new direct messages
     const handleDirectMessage = (message: Message) => {
-      // Only add message if the current user is the receiver
+      // Add message if it's part of current conversation and not a duplicate
       if (
         user &&
         userId &&
-        message.receiverId === user.id &&
         (message.senderId === userId || message.receiverId === userId)
       ) {
         setMessages(prev => {
           // Prevent duplicates by checking message ID
           const messageId = message.id || (message as any)._id;
-          const exists = prev.some(m => (m.id || (m as any)._id) === messageId);
+          const exists = prev.some(m => {
+            const existingId = m.id || (m as any)._id;
+            return existingId === messageId || 
+                   (existingId.toString().startsWith('temp-') && 
+                    m.content === message.content && 
+                    m.senderId === message.senderId);
+          });
           if (exists) return prev;
+          
           const newMessage = {
             ...message,
             id: messageId,
             timestamp: new Date(message.timestamp)
           };
-          return [...prev, newMessage];
+          
+          // Remove any temporary message with same content
+          const filteredPrev = prev.filter(m => 
+            !(m.id.toString().startsWith('temp-') && 
+              m.content === message.content && 
+              m.senderId === message.senderId)
+          );
+          
+          return [...filteredPrev, newMessage];
         });
       }
       loadConversations();
@@ -159,13 +173,35 @@ const Messages: React.FC = () => {
     if (!newMessage.trim() || !userId || !user || isSending) return;
 
     setIsSending(true);
+    
+    // Optimistically add message to UI
+    const tempMessage = {
+      id: 'temp-' + Date.now(),
+      senderId: user.id,
+      receiverId: userId,
+      content: newMessage.trim(),
+      timestamp: new Date(),
+      conversationId: [user.id, userId].sort().join('-'),
+      sender: {
+        id: user.id,
+        displayName: user.displayName,
+        username: user.username,
+        avatar: user.avatar
+      }
+    };
+    
+    setMessages(prev => [...prev, tempMessage]);
+    const messageContent = newMessage.trim();
+    setNewMessage('');
+    
     try {
       // Send via API (which will trigger socket event)
-      await messagesAPI.sendMessage(userId, newMessage.trim());
-      
-      setNewMessage('');
+      await messagesAPI.sendMessage(userId, messageContent);
     } catch (error) {
       console.error('Error sending message:', error);
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+      setNewMessage(messageContent); // Restore message
       toast.error('Failed to send message');
     } finally {
       setIsSending(false);

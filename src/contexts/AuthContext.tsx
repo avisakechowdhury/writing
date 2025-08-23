@@ -4,7 +4,7 @@ import { User } from '../types';
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, username: string) => Promise<void>;
+  signup: (email: string, password: string, username: string, displayName: string) => Promise<void>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   isLoading: boolean;
