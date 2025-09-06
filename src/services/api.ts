@@ -66,6 +66,10 @@ export const postsAPI = {
   },
   
   getPost: async (postId: string) => {
+    // Validate postId format before making request
+    if (!postId || !/^[0-9a-fA-F]{24}$/.test(postId)) {
+      throw new Error('Invalid post ID format');
+    }
     const response = await api.get(`/posts/${postId}`);
     return response.data;
   },
@@ -76,11 +80,19 @@ export const postsAPI = {
   },
   
   likePost: async (postId: string) => {
+    // Validate postId format before making request
+    if (!postId || !/^[0-9a-fA-F]{24}$/.test(postId)) {
+      throw new Error('Invalid post ID format');
+    }
     const response = await api.post(`/posts/${postId}/like`);
     return response.data;
   },
   
   addComment: async (postId: string, content: string) => {
+    // Validate postId format before making request
+    if (!postId || !/^[0-9a-fA-F]{24}$/.test(postId)) {
+      throw new Error('Invalid post ID format');
+    }
     const response = await api.post(`/posts/${postId}/comments`, { content });
     return response.data;
   },

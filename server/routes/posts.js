@@ -4,8 +4,24 @@ import Post from '../models/Post.js';
 import User from '../models/User.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { sendPushNotification } from '../services/sendPushNotification.js';
+import { isValidObjectId } from '../utils/validation.js';
 
 const router = express.Router();
+
+// Middleware to log all requests to posts routes
+router.use((req, res, next) => {
+  // console.log('Posts route accessed:', {
+  //   method: req.method,
+  //   url: req.url,
+  //   path: req.path,
+  //   params: req.params,
+  //   query: req.query,
+  //   userAgent: req.get('User-Agent'),
+  //   ip: req.ip,
+  //   timestamp: new Date().toISOString()
+  // });
+  next();
+});
 
 // Get all posts (public feed)
 router.get('/', async (req, res) => {
@@ -47,8 +63,8 @@ router.get('/', async (req, res) => {
       id: post._id,
       title: post.title,
       content: post.content,
-      authorId: post.authorId._id,
-      authorName: post.isAnonymous ? 'Anonymous' : post.authorName,
+      authorId: post.authorId?._id || post.authorId,
+      authorName: post.isAnonymous ? 'Anonymous' : (post.authorId?.displayName || post.authorName),
       isAnonymous: post.isAnonymous,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
@@ -83,14 +99,30 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get posts error:', error);
-    res.status(500).json({ message: 'Server error while fetching posts' });
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Server error while fetching posts',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
 // Get single post (for sharing)
 router.get('/:id', async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id)
+    const { id } = req.params;
+    
+    // Log the incoming request for debugging
+    // console.log('Get single post request:', { id, url: req.url, userAgent: req.get('User-Agent') });
+    
+    // Validate that the ID is a valid MongoDB ObjectId
+    if (!isValidObjectId(id)) {
+      console.log('Invalid post ID format:', id);
+      return res.status(400).json({ message: 'Invalid post ID format' });
+    }
+    
+    const post = await Post.findById(id)
       .populate('authorId', 'displayName username')
       .lean();
     
@@ -106,8 +138,8 @@ router.get('/:id', async (req, res) => {
       title: post.title,
       content: post.content,
       preview: previewContent,
-      authorId: post.authorId._id,
-      authorName: post.isAnonymous ? 'Anonymous' : post.authorName,
+      authorId: post.authorId?._id || post.authorId,
+      authorName: post.isAnonymous ? 'Anonymous' : (post.authorId?.displayName || post.authorName),
       isAnonymous: post.isAnonymous,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
@@ -132,7 +164,12 @@ router.get('/:id', async (req, res) => {
     res.json({ post: transformedPost });
   } catch (error) {
     console.error('Get single post error:', error);
-    res.status(500).json({ message: 'Server error while fetching post' });
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Server error while fetching post',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 // Create new post
@@ -229,7 +266,14 @@ router.post('/', authenticate, [
 // Like/unlike post
 router.post('/:id/like', authenticate, async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const { id } = req.params;
+    
+    // Validate that the ID is a valid MongoDB ObjectId
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid post ID format' });
+    }
+    
+    const post = await Post.findById(id);
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
@@ -279,7 +323,14 @@ router.post('/:id/comments', authenticate, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const post = await Post.findById(req.params.id);
+    const { id } = req.params;
+    
+    // Validate that the ID is a valid MongoDB ObjectId
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid post ID format' });
+    }
+
+    const post = await Post.findById(id);
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
@@ -385,6 +436,12 @@ router.get('/my-posts', authenticate, async (req, res) => {
     console.error('Get user posts error:', error);
     res.status(500).json({ message: 'Server error while fetching user posts' });
   }
+});
+
+// Catch-all route for invalid post requests
+router.get('*', (req, res) => {
+  console.log('Invalid post route accessed:', req.url);
+  res.status(404).json({ message: 'Post route not found' });
 });
 
 export default router;

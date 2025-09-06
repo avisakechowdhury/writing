@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus, PenTool } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Filter, Plus, PenTool, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PostCard from '../components/Post/PostCard';
 import { usePosts } from '../hooks/usePosts';
@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { showAuthRequiredToastSimple, redirectToLanding } from '../utils/toastUtils';
 
 const Feed: React.FC = () => {
-  const { posts, isLoading, likePost, addComment } = usePosts();
+  const { posts, isLoading, isLoadingMore, hasMore, likePost, addComment, loadMore } = usePosts();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMood, setSelectedMood] = useState<string>('all');
@@ -49,15 +49,20 @@ const Feed: React.FC = () => {
     }
   };
 
-  const handleLikeComment = (commentId: string) => {
-    if (!user) {
-      redirectToLanding();
-      return;
+  // Infinite scroll handler
+  const handleScroll = useCallback(() => {
+    if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 1000) {
+      if (hasMore && !isLoadingMore && !isLoading) {
+        loadMore();
+      }
     }
-    
-    // TODO: Implement comment liking functionality
-    console.log('Like comment:', commentId);
-  };
+  }, [hasMore, isLoadingMore, isLoading, loadMore]);
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
   const moods = ['all', 'happy', 'peaceful', 'grateful', 'anxious', 'sad'];
 
   return (
@@ -169,9 +174,38 @@ const Feed: React.FC = () => {
               post={post}
               onLike={handleLike}
               onComment={handleComment}
-              onLikeComment={handleLikeComment}
             />
           ))}
+          
+          {/* Infinite scroll loading indicator */}
+          {isLoadingMore && (
+            <div className="flex justify-center py-8">
+              <div className="flex items-center space-x-2 text-neutral-600">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Loading more posts...</span>
+              </div>
+            </div>
+          )}
+          
+          {/* End of posts indicator */}
+          {!hasMore && filteredPosts.length > 0 && (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <PenTool className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-900 mb-2">You've reached the end!</h3>
+              <p className="text-neutral-600 mb-6">
+                You've seen all the posts. Check back later for more inspiring stories!
+              </p>
+              <Link
+                to="/write"
+                className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold rounded-xl hover:from-primary-600 hover:to-secondary-600 transition-all duration-200"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Write Your Own Story</span>
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>

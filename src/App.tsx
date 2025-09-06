@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import PostView from './pages/PostView';
 import RandomChat from './pages/RandomChat';
 import ChatWidget from './components/Chat/ChatWidget';
+import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useAuthService } from './hooks/useAuth';
 
@@ -41,30 +42,31 @@ const AppContent: React.FC = () => {
   const { user } = useAuth();
 
   return (
-    <Router>
-      <div className="App">
-        <Toaster 
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-              borderRadius: '8px',
-            },
-            success: {
+    <ErrorBoundary>
+      <Router>
+        <div className="App">
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
               style: {
-                background: '#10b981',
+                background: '#363636',
+                color: '#fff',
+                borderRadius: '8px',
               },
-            },
-            error: {
-              style: {
-                background: '#ef4444',
+              success: {
+                style: {
+                  background: '#10b981',
+                },
               },
-            },
-          }}
-        />
-        <Routes>
+              error: {
+                style: {
+                  background: '#ef4444',
+                },
+              },
+            }}
+          />
+          <Routes>
           <Route path="/landing" element={<Landing />} />
           <Route path="/" element={<Layout />}>
             <Route 
@@ -129,11 +131,7 @@ const AppContent: React.FC = () => {
             />
             <Route 
               path="post/:postId" 
-              element={
-                <ProtectedRoute>
-                  <PostView />
-                </ProtectedRoute>
-              } 
+              element={<PostView />}
             />
             <Route 
               path="random-chat" 
@@ -146,10 +144,11 @@ const AppContent: React.FC = () => {
           </Route>
         </Routes>
         
-        {/* Chat Widget - only show for authenticated users */}
-        {user && <ChatWidget />}
-      </div>
-    </Router>
+          {/* Chat Widget - only show for authenticated users */}
+          {user && <ChatWidget />}
+        </div>
+      </Router>
+    </ErrorBoundary>
   );
 };
 

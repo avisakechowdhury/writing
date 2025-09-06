@@ -10,6 +10,16 @@ import { usePosts } from '../hooks/usePosts';
 import toast from 'react-hot-toast';
 import { showAuthRequiredToastSimple } from '../utils/toastUtils';
 
+// Safe Helmet wrapper to prevent errors
+const SafeHelmet: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  try {
+    return <Helmet>{children}</Helmet>;
+  } catch (error) {
+    console.warn('Helmet error:', error);
+    return null;
+  }
+};
+
 const PostView: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
   const { user } = useAuth();
@@ -43,7 +53,13 @@ const PostView: React.FC = () => {
       });
     } catch (error: any) {
       console.error('Error loading post:', error);
-      toast.error('Post not found or no longer available');
+      if (error.response?.status === 404) {
+        toast.error('Post not found or no longer available');
+      } else if (error.response?.status === 500) {
+        toast.error('Server error. Please try again later.');
+      } else {
+        toast.error('Failed to load post. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -138,19 +154,19 @@ const PostView: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {post && (
-        <Helmet>
-          <title>{post.title} - WriteAnon</title>
-          <meta name="description" content={post.content.replace(/<[^>]*>/g, '').substring(0, 160)} />
-          <meta property="og:title" content={post.title} />
-          <meta property="og:description" content={post.content.replace(/<[^>]*>/g, '').substring(0, 200)} />
+        <SafeHelmet>
+          <title>{post.title || 'Post'} - WriteAnon</title>
+          <meta name="description" content={post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 160) : 'Read this post on WriteAnon'} />
+          <meta property="og:title" content={post.title || 'Post'} />
+          <meta property="og:description" content={post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 200) : 'Read this post on WriteAnon'} />
           <meta property="og:type" content="article" />
-          <meta property="og:url" content={`https://anonwriter.vercel.app/post/${post.id}`} />
+          <meta property="og:url" content={`${window.location.origin}/post/${post.id}`} />
           <meta property="og:image" content="/Gemini_Generated_Image_p3k1qbp3k1qbp3k1.png" />
           <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:title" content={post.title} />
-          <meta name="twitter:description" content={post.content.replace(/<[^>]*>/g, '').substring(0, 200)} />
+          <meta name="twitter:title" content={post.title || 'Post'} />
+          <meta name="twitter:description" content={post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 200) : 'Read this post on WriteAnon'} />
           <meta name="twitter:image" content="/Gemini_Generated_Image_p3k1qbp3k1qbp3k1.png" />
-        </Helmet>
+        </SafeHelmet>
       )}
       
       {/* Header */}

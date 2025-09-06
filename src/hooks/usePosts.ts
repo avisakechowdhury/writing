@@ -6,12 +6,17 @@ import toast from 'react-hot-toast';
 export const usePosts = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
 
   const loadPosts = async (pageNum: number = 1, filters?: any) => {
     try {
-      setIsLoading(pageNum === 1);
+      if (pageNum === 1) {
+        setIsLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
       
       const response = await postsAPI.getPosts({
         page: pageNum,
@@ -42,6 +47,7 @@ export const usePosts = () => {
       toast.error('Failed to load posts');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -140,19 +146,21 @@ export const usePosts = () => {
   };
 
   const loadMore = () => {
-    if (!isLoading && hasMore) {
+    if (!isLoading && !isLoadingMore && hasMore) {
       loadPosts(page + 1);
     }
   };
 
   const refresh = (filters?: any) => {
     setPage(1);
+    setHasMore(true);
     loadPosts(1, filters);
   };
 
   return {
     posts,
     isLoading,
+    isLoadingMore,
     hasMore,
     createPost,
     likePost,
