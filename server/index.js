@@ -17,6 +17,8 @@ import reportRoutes from './routes/reports.js';
 import { authenticateSocket } from './middleware/auth.js';
 import { setupCronJobs } from './services/cronJobs.js';
 import Message from './models/Message.js';
+import { sanitizeInput } from './middleware/sanitize.js';
+import { sanitizeHTML } from './utils/validation.js';
 
 dotenv.config();
 
@@ -42,31 +44,87 @@ const allowedOrigins = [
   ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : ["http://localhost:5173"]),
   "https://anonwriter.vercel.app",
   "https://www.writeanon.in",
+  "https://writeanon.in",
   "http://localhost:5173"
 ].filter(Boolean);
-app.use(helmet());
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+
+// Enhanced Helmet configuration for security
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", process.env.CLIENT_URL || "https://writeanon.in"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// Rate limiting
-const limiter = rateLimit({
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  exposedHeaders: ["X-Total-Count"]
+}));
+
+// Rate limiting - stricter for auth endpoints
+const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Increased limit for development
+  max: process.env.NODE_ENV === 'production' ? 500 : 1000,
   standardHeaders: true,
   legacyHeaders: false,
+  message: 'Too many requests from this IP, please try again later.',
   skip: (req) => {
-    // Skip rate limiting for auth endpoints in development
-    return process.env.NODE_ENV === 'development' && req.path.startsWith('/api/auth');
+    return req.path.startsWith('/api/auth') || req.path.startsWith('/api/health');
   }
 });
-app.use(limiter);
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 20 : 100, // Stricter for auth
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many authentication attempts, please try again later.',
+  skipSuccessfulRequests: true
+});
+
+app.use(generalLimiter);
+app.use('/api/auth', authLimiter);
+
+// Body parsing middleware with size limits
+app.use(express.json({ 
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    // Prevent JSON parsing errors from crashing the server
+    try {
+      JSON.parse(buf);
+    } catch (e) {
+      res.status(400).json({ message: 'Invalid JSON payload' });
+      throw new Error('Invalid JSON');
+    }
+  }
+}));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Input sanitization middleware
+app.use(sanitizeInput);
 
 // Make io available to routes
 app.set('io', io);
@@ -101,18 +159,30 @@ io.on('connection', (socket) => {
   // Handle chat messages (public chat)
   socket.on('send_message', async (data) => {
     try {
+      // Validate and sanitize input
+      if (!data || typeof data.content !== 'string' || data.content.trim().length === 0) {
+        return socket.emit('error', { message: 'Invalid message content' });
+      }
+
+      if (data.content.length > 1000) {
+        return socket.emit('error', { message: 'Message too long (max 1000 characters)' });
+      }
+
+      const sanitizedContent = sanitizeHTML(data.content.trim());
+
       const message = {
         id: Date.now().toString(),
         userId: socket.userId,
         username: socket.username,
-        content: data.content,
+        content: sanitizedContent,
         timestamp: new Date(),
-        room: data.room || 'general'
+        room: (data.room && typeof data.room === 'string') ? data.room.replace(/[^a-zA-Z0-9_-]/g, '') : 'general'
       };
       
       // Broadcast to room
       io.to(message.room).emit('receive_message', message);
     } catch (error) {
+      console.error('Send message error:', error);
       socket.emit('error', { message: 'Failed to send message' });
     }
   });
@@ -120,7 +190,33 @@ io.on('connection', (socket) => {
   // Handle direct messages
   socket.on('send_direct_message', async (data) => {
     try {
+      // Validate input
+      if (!data || !data.receiverId || !data.content) {
+        return socket.emit('error', { message: 'Invalid message data' });
+      }
+
       const { receiverId, content } = data;
+      
+      // Validate receiverId format (MongoDB ObjectId)
+      if (!/^[0-9a-fA-F]{24}$/.test(receiverId)) {
+        return socket.emit('error', { message: 'Invalid receiver ID' });
+      }
+
+      // Validate and sanitize content
+      if (typeof content !== 'string' || content.trim().length === 0) {
+        return socket.emit('error', { message: 'Invalid message content' });
+      }
+
+      if (content.length > 5000) {
+        return socket.emit('error', { message: 'Message too long (max 5000 characters)' });
+      }
+
+      const sanitizedContent = sanitizeHTML(content.trim());
+      
+      // Prevent self-messaging abuse
+      if (receiverId === socket.userId) {
+        return socket.emit('error', { message: 'Cannot send message to yourself' });
+      }
       
       // Create conversation ID (consistent ordering)
       const conversationId = [socket.userId, receiverId].sort().join('-');
@@ -129,7 +225,7 @@ io.on('connection', (socket) => {
       const message = new Message({
         senderId: socket.userId,
         receiverId,
-        content,
+        content: sanitizedContent,
         conversationId
       });
       
@@ -209,10 +305,24 @@ setupCronJobs();
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err.message : {}
+  // Log error details server-side only
+  console.error('Error:', {
+    message: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    path: req.path,
+    method: req.method,
+    timestamp: new Date().toISOString()
+  });
+
+  // Don't expose error details in production
+  const statusCode = err.statusCode || err.status || 500;
+  const message = process.env.NODE_ENV === 'development' 
+    ? err.message 
+    : 'Something went wrong. Please try again later.';
+
+  res.status(statusCode).json({ 
+    message,
+    ...(process.env.NODE_ENV === 'development' && { error: err.message })
   });
 });
 

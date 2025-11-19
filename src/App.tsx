@@ -12,6 +12,7 @@ import Messages from './pages/Messages';
 import Settings from './pages/Settings';
 import PostView from './pages/PostView';
 import RandomChat from './pages/RandomChat';
+import ResetPassword from './pages/ResetPassword';
 import ChatWidget from './components/Chat/ChatWidget';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -68,6 +69,7 @@ const AppContent: React.FC = () => {
           />
           <Routes>
           <Route path="/landing" element={<Landing />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<Layout />}>
             <Route 
               index 

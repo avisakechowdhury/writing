@@ -206,7 +206,7 @@ const Navbar: React.FC = () => {
 
             <button
               onClick={() => {
-                logout();
+                void logout();
                 setShowMobileMenu(false);
               }}
               className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors text-left"

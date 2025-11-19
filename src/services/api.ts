@@ -1,14 +1,57 @@
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
+import socketService from './socket';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://anonwriter.onrender.com/api';
 
-// Create axios instance
+// Create axios instances
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+const plainApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+const clearSession = () => {
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('user_data');
+};
+
+const redirectToLanding = () => {
+  if (typeof window !== 'undefined' && window.location.pathname !== '/landing') {
+    window.location.href = '/landing';
+  }
+};
+
+const forceLogout = () => {
+  clearSession();
+  socketService.disconnect();
+  redirectToLanding();
+};
+
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void;
+  reject: (error: unknown) => void;
+}> = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
@@ -22,12 +65,66 @@ api.interceptors.request.use((config) => {
 // Handle auth errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      window.location.href = '/landing';
+  async (error) => {
+    const originalRequest = (error.config || {}) as AxiosRequestConfig & { _retry?: boolean };
+
+    if (error.response?.status === 401 && !originalRequest?._retry) {
+      const refreshToken = localStorage.getItem('refresh_token');
+
+      if (!refreshToken) {
+        forceLogout();
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({
+            resolve: (token) => {
+              if (!token) {
+                reject(error);
+                return;
+              }
+              if (!originalRequest.headers) {
+                originalRequest.headers = {};
+              }
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              resolve(api(originalRequest));
+            },
+            reject
+          });
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const response = await plainApi.post('/auth/refresh-token', { refreshToken });
+        const { token, refreshToken: newRefreshToken, user } = response.data;
+
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('refresh_token', newRefreshToken);
+        if (user) {
+          localStorage.setItem('user_data', JSON.stringify(user));
+        }
+        socketService.updateAuthToken(token);
+
+        processQueue(null, token);
+
+        if (!originalRequest.headers) {
+          originalRequest.headers = {};
+        }
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        forceLogout();
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     return Promise.reject(error);
   }
 );
@@ -54,6 +151,55 @@ export const authAPI = {
   
   updateProfile: async (data: any) => {
     const response = await api.put('/auth/profile', data);
+    return response.data;
+  },
+  
+  sendVerificationOTP: async (email: string) => {
+    const response = await api.post('/auth/send-verification-otp', { email });
+    return response.data;
+  },
+  
+  verifyEmail: async (email: string, otp: string) => {
+    const response = await api.post('/auth/verify-email', { email, otp });
+    return response.data;
+  },
+  
+  forgotPassword: async (email: string) => {
+    const response = await api.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+  
+  resetPassword: async (token: string, password: string) => {
+    const response = await api.post('/auth/reset-password', { token, password });
+    return response.data;
+  },
+
+  logout: async (refreshToken?: string | null) => {
+    const response = await api.post('/auth/logout', { refreshToken });
+    return response.data;
+  },
+  
+  refreshToken: async () => {
+    const storedRefreshToken = localStorage.getItem('refresh_token');
+    if (!storedRefreshToken) {
+      throw new Error('No refresh token available');
+    }
+    const response = await plainApi.post('/auth/refresh-token', { refreshToken: storedRefreshToken });
+    return response.data;
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    const response = await api.post('/auth/change-password', { currentPassword, newPassword });
+    return response.data;
+  },
+
+  requestEmailChange: async (newEmail: string) => {
+    const response = await api.post('/auth/request-email-change', { newEmail });
+    return response.data;
+  },
+
+  verifyEmailChange: async (otp: string) => {
+    const response = await api.post('/auth/verify-email-change', { otp });
     return response.data;
   }
 };
@@ -94,6 +240,17 @@ export const postsAPI = {
       throw new Error('Invalid post ID format');
     }
     const response = await api.post(`/posts/${postId}/comments`, { content });
+    return response.data;
+  },
+
+  likeComment: async (postId: string, commentId: string) => {
+    if (!postId || !/^[0-9a-fA-F]{24}$/.test(postId)) {
+      throw new Error('Invalid post ID format');
+    }
+    if (!commentId || !/^[0-9a-fA-F]{24}$/.test(commentId)) {
+      throw new Error('Invalid comment ID format');
+    }
+    const response = await api.post(`/posts/${postId}/comments/${commentId}/like`);
     return response.data;
   },
   

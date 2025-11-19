@@ -56,7 +56,7 @@ router.post('/unsubscribe', authenticate, async (req, res) => {
   }
 });
 
-// Send test notification
+// Send test notification (daily reminder style)
 router.post('/test', authenticate, async (req, res) => {
   try {
     if (!process.env.VAPID_PUBLIC_KEY) {
@@ -69,16 +69,21 @@ router.post('/test', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Please enable push notifications first' });
     }
     
+    // Send a daily reminder-style notification
+    const reminderTime = user.preferences?.reminderTime || '20:00';
     const payload = JSON.stringify({
-      title: 'Test Notification',
-      body: 'This is a test notification from WriteAnon!',
+      title: 'Time to Write! ✍️',
+      body: `Keep your ${user.streak}-day streak alive! Share your thoughts with the community.`,
       icon: '/icon-192x192.png',
-      badge: '/badge-72x72.png'
+      badge: '/badge-72x72.png',
+      data: {
+        url: '/write'
+      }
     });
     
     await webpush.sendNotification(user.pushSubscription, payload);
     
-    res.json({ message: 'Test notification sent successfully' });
+    res.json({ message: 'Test reminder notification sent successfully' });
   } catch (error) {
     console.error('Send test notification error:', error);
     

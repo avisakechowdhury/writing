@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
+import ChangePasswordModal from '../components/Auth/ChangePasswordModal';
+import EmailChangeModal from '../components/Auth/EmailChangeModal';
 import toast from 'react-hot-toast';
 
 const Settings: React.FC = () => {
@@ -31,7 +33,6 @@ const Settings: React.FC = () => {
 
   const [settings, setSettings] = useState({
     displayName: user?.displayName || '',
-    email: user?.email || '',
     notifications: user?.preferences.notifications || true,
     reminderTime: user?.preferences.reminderTime || '20:00',
     isAnonymous: user?.preferences.isAnonymous || false,
@@ -39,6 +40,8 @@ const Settings: React.FC = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showChangeEmail, setShowChangeEmail] = useState(false);
 
   if (!user) return null;
 
@@ -47,7 +50,6 @@ const Settings: React.FC = () => {
     try {
       updateUser({
         displayName: settings.displayName,
-        email: settings.email,
         preferences: {
           ...user.preferences,
           notifications: settings.notifications,
@@ -62,6 +64,11 @@ const Settings: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEmailChangeSuccess = () => {
+    // Refresh user data after email change
+    window.location.reload();
   };
 
   const handleNotificationToggle = async (enabled: boolean) => {
@@ -106,7 +113,7 @@ const Settings: React.FC = () => {
               <h2 className="text-xl font-semibold text-neutral-900">Profile</h2>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-2">
                   Display Name
@@ -123,15 +130,36 @@ const Settings: React.FC = () => {
                 <label className="block text-sm font-medium text-neutral-700 mb-2">
                   Email
                 </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
-                  <input
-                    type="email"
-                    value={settings.email}
-                    onChange={(e) => setSettings(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full pl-10 pr-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
+                <div className="flex items-center space-x-3">
+                  <div className="relative flex-1">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                    <input
+                      type="email"
+                      value={user?.email || ''}
+                      disabled
+                      className="w-full pl-10 pr-4 py-3 border border-neutral-300 rounded-lg bg-neutral-50 text-neutral-500"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setShowChangeEmail(true)}
+                    className="px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors whitespace-nowrap"
+                  >
+                    Change Email
+                  </button>
                 </div>
+                <p className="mt-1 text-xs text-neutral-500">
+                  Email changes require verification via OTP
+                </p>
+              </div>
+
+              <div className="border-t border-neutral-200 pt-4">
+                <button
+                  onClick={() => setShowChangePassword(true)}
+                  className="flex items-center space-x-2 px-4 py-3 border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors"
+                >
+                  <Lock className="w-4 h-4" />
+                  <span>Change Password</span>
+                </button>
               </div>
             </div>
           </section>
@@ -294,6 +322,20 @@ const Settings: React.FC = () => {
           </section>
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+      />
+
+      {/* Change Email Modal */}
+      <EmailChangeModal
+        isOpen={showChangeEmail}
+        onClose={() => setShowChangeEmail(false)}
+        currentEmail={user?.email || ''}
+        onSuccess={handleEmailChangeSuccess}
+      />
     </div>
   );
 };

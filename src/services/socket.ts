@@ -2,7 +2,6 @@ import { io, Socket } from 'socket.io-client';
 
 class SocketService {
   private socket: Socket | null = null;
-  private token: string | null = null;
   private isConnecting: boolean = false;
   private messageListeners: Set<Function> = new Set();
 
@@ -13,7 +12,6 @@ class SocketService {
     }
 
     this.isConnecting = true;
-    this.token = token;
     
     this.socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://anonwriter.onrender.com', {
       auth: {
@@ -39,6 +37,15 @@ class SocketService {
     });
 
     return this.socket;
+  }
+
+  updateAuthToken(token: string) {
+    if (this.socket) {
+      this.socket.auth = {
+        ...(this.socket.auth || {}),
+        token
+      };
+    }
   }
 
   disconnect() {

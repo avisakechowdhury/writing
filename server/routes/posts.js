@@ -380,6 +380,52 @@ router.post('/:id/comments', authenticate, [
   }
 });
 
+// Like/unlike comment
+router.post('/:postId/comments/:commentId/like', authenticate, async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+
+    if (!isValidObjectId(postId)) {
+      return res.status(400).json({ message: 'Invalid post ID format' });
+    }
+    if (!commentId || !/^[0-9a-fA-F]{24}$/.test(commentId)) {
+      return res.status(400).json({ message: 'Invalid comment ID format' });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const comment = post.comments.find(comment => comment.id === commentId);
+    if (!comment) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+
+    const userId = req.user._id;
+    const hasLiked = comment.likedBy.some(id => id.equals(userId));
+
+    if (hasLiked) {
+      comment.likedBy = comment.likedBy.filter(id => !id.equals(userId));
+      comment.likes = Math.max(0, comment.likes - 1);
+    } else {
+      comment.likedBy.push(userId);
+      comment.likes += 1;
+    }
+
+    await post.save();
+
+    res.json({
+      message: hasLiked ? 'Comment unliked' : 'Comment liked',
+      likes: comment.likes,
+      isLiked: !hasLiked
+    });
+  } catch (error) {
+    console.error('Like comment error:', error);
+    res.status(500).json({ message: 'Server error while updating comment like' });
+  }
+});
+
 // Get user's posts
 router.get('/my-posts', authenticate, async (req, res) => {
   try {

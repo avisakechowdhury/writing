@@ -15,6 +15,20 @@ export const useAuthService = () => {
   const checkAuthStatus = async () => {
     try {
       const token = localStorage.getItem('auth_token');
+      const storedUser = localStorage.getItem('user_data');
+
+      if (storedUser && !user) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser({
+            ...parsedUser,
+            joinedDate: new Date(parsedUser.joinedDate)
+          });
+        } catch (err) {
+          console.error('Failed to parse stored user data:', err);
+        }
+      }
+
       if (!token) {
         setIsLoading(false);
         return;
@@ -27,16 +41,23 @@ export const useAuthService = () => {
       };
       
       setUser(userData);
+      localStorage.setItem('user_data', JSON.stringify(response.user));
       
-      // Connect to socket with token only if not already connected
+      // Connect or update socket token
       if (!socketService.getSocket()?.connected) {
         socketService.connect(token);
+      } else {
+        socketService.updateAuthToken(token);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      toast.error('Session expired. Please login again.');
+      if (error.response?.status === 401) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user_data');
+        socketService.disconnect();
+        toast.error('Session expired. Please login again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -49,6 +70,7 @@ export const useAuthService = () => {
       
       // Store token and user data
       localStorage.setItem('auth_token', response.token);
+      localStorage.setItem('refresh_token', response.refreshToken);
       localStorage.setItem('user_data', JSON.stringify(response.user));
       
       const userData = {
@@ -61,6 +83,8 @@ export const useAuthService = () => {
       // Connect to socket only if not already connected
       if (!socketService.getSocket()?.connected) {
         socketService.connect(response.token);
+      } else {
+        socketService.updateAuthToken(response.token);
       }
       
       toast.success(`Welcome back, ${userData.displayName}!`);
@@ -82,8 +106,15 @@ export const useAuthService = () => {
       setIsLoading(true);
       const response = await authAPI.register(email, password, username, displayName);
       
-      // Store token and user data
+      // Check if email verification is required
+      if (response.requiresVerification) {
+        // Don't set user or redirect, just return the response
+        return response;
+      }
+      
+      // Store token and user data (for immediate verification)
       localStorage.setItem('auth_token', response.token);
+      localStorage.setItem('refresh_token', response.refreshToken);
       localStorage.setItem('user_data', JSON.stringify(response.user));
       
       const userData = {
@@ -96,12 +127,16 @@ export const useAuthService = () => {
       // Connect to socket only if not already connected
       if (!socketService.getSocket()?.connected) {
         socketService.connect(response.token);
+      } else {
+        socketService.updateAuthToken(response.token);
       }
       
       toast.success(`Welcome to WriteAnon, ${userData.displayName}!`);
       
       // Redirect to feed immediately
       window.location.href = '/';
+      
+      return response;
     } catch (error: any) {
       console.error('Signup error details:', error.response?.data);
       
@@ -120,21 +155,31 @@ export const useAuthService = () => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('current_draft');
+  const logout = async () => {
+    const refreshToken = localStorage.getItem('refresh_token');
     
-    // Disconnect socket
-    socketService.disconnect();
-    
-    setUser(null);
-    toast.success('Logged out successfully');
-    
-    // Redirect to landing page
-    setTimeout(() => {
-      window.location.href = '/landing';
-    }, 500);
+    try {
+      if (refreshToken) {
+        await authAPI.logout(refreshToken);
+      } else {
+        await authAPI.logout();
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user_data');
+      localStorage.removeItem('current_draft');
+      
+      socketService.disconnect();
+      setUser(null);
+      toast.success('Logged out successfully');
+      
+      setTimeout(() => {
+        window.location.href = '/landing';
+      }, 500);
+    }
   };
 
   const updateUser = (updates: Partial<User>) => {

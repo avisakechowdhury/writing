@@ -41,6 +41,47 @@ export const sanitizeString = (str) => {
 };
 
 /**
+ * Sanitizes input to prevent MongoDB injection
+ * @param {any} input - The input to sanitize
+ * @returns {any} - The sanitized input
+ */
+export const sanitizeMongoInput = (input) => {
+  if (typeof input === 'string') {
+    // Remove MongoDB operators
+    return input.replace(/\$|\./g, '');
+  }
+  if (typeof input === 'object' && input !== null) {
+    if (Array.isArray(input)) {
+      return input.map(item => sanitizeMongoInput(item));
+    }
+    const sanitized = {};
+    for (const key in input) {
+      // Remove keys that start with $ (MongoDB operators)
+      if (!key.startsWith('$')) {
+        sanitized[key] = sanitizeMongoInput(input[key]);
+      }
+    }
+    return sanitized;
+  }
+  return input;
+};
+
+/**
+ * Sanitizes HTML content to prevent XSS
+ * @param {string} html - The HTML string to sanitize
+ * @returns {string} - The sanitized HTML
+ */
+export const sanitizeHTML = (html) => {
+  if (!html || typeof html !== 'string') return '';
+  // Basic XSS prevention - remove script tags and event handlers
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/javascript:/gi, '')
+    .trim();
+};
+
+/**
  * Validates if a string is a valid URL
  * @param {string} url - The URL to validate
  * @returns {boolean} - True if valid URL, false otherwise

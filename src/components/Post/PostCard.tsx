@@ -24,10 +24,11 @@ import { showAuthRequiredToastSimple } from '../../utils/toastUtils';
 interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
-  onComment: (postId: string, content: string) => void;
+  onComment: (postId: string, content: string) => Promise<void> | void;
+  onLikeComment: (postId: string, commentId: string) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment, onLikeComment }) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -299,10 +300,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
           postId={post.id}
           comments={post.comments}
           onAddComment={onComment}
-          onLikeComment={(commentId) => {
-            // TODO: Implement comment liking in parent component
-            console.log('Like comment:', commentId);
-          }}
+          onLikeComment={(commentId) => onLikeComment(post.id, commentId)}
         />
       )}
 

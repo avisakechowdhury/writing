@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -91,7 +92,53 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
-  }
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerificationToken: {
+    type: String,
+    default: null
+  },
+  emailVerificationExpires: {
+    type: Date,
+    default: null
+  },
+  resetPasswordToken: {
+    type: String,
+    default: null
+  },
+  resetPasswordExpires: {
+    type: Date,
+    default: null
+  },
+  emailChangeToken: {
+    type: String,
+    default: null
+  },
+  emailChangeExpires: {
+    type: Date,
+    default: null
+  },
+  pendingEmail: {
+    type: String,
+    default: null
+  },
+  refreshTokens: [{
+    tokenHash: {
+      type: String,
+      required: true
+    },
+    expiresAt: {
+      type: Date,
+      required: true
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }]
 }, {
   timestamps: true
 });
@@ -163,5 +210,35 @@ userSchema.methods.checkStreakReset = function() {
 userSchema.methods.updateLevel = function() {
   this.level = Math.floor(this.points / 100) + 1;
 };
+
+// Generate email verification token
+userSchema.methods.generateEmailVerificationToken = function() {
+  const token = crypto.randomBytes(32).toString('hex');
+  this.emailVerificationToken = token;
+  this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  return token;
+};
+
+// Generate password reset token
+userSchema.methods.generatePasswordResetToken = function() {
+  const token = crypto.randomBytes(32).toString('hex');
+  this.resetPasswordToken = token;
+  this.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+  return token;
+};
+
+// Check if email verification token is valid
+userSchema.methods.isEmailVerificationTokenValid = function(token) {
+  return this.emailVerificationToken === token && 
+         this.emailVerificationExpires > Date.now();
+};
+
+// Check if password reset token is valid
+userSchema.methods.isPasswordResetTokenValid = function(token) {
+  return this.resetPasswordToken === token && 
+         this.resetPasswordExpires > Date.now();
+};
+
+userSchema.index({ 'refreshTokens.tokenHash': 1 });
 
 export default mongoose.model('User', userSchema);

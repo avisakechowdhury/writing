@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Eye, EyeOff, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import EmailVerificationModal from './EmailVerificationModal';
+import ForgotPasswordModal from './ForgotPasswordModal';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,6 +18,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
   
   const { login, signup } = useAuth();
 
@@ -107,12 +112,22 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
       if (mode === 'login') {
         await login(formData.email, formData.password);
         toast.success('Welcome back!');
+        onClose();
+        resetForm();
       } else {
-        await signup(formData.email, formData.password, formData.username, formData.displayName);
-        toast.success('Account created successfully!');
+        const response = await signup(formData.email, formData.password, formData.username, formData.displayName);
+        
+        // Check if email verification is required
+        if (response.requiresVerification) {
+          setPendingEmail(formData.email);
+          setShowEmailVerification(true);
+          toast.success('Please check your email for verification code');
+        } else {
+          toast.success('Account created successfully!');
+          onClose();
+          resetForm();
+        }
       }
-      onClose();
-      resetForm();
     } catch (error: any) {
       console.error('Auth error:', error);
       const message = error.response?.data?.message || 'Authentication failed';
@@ -133,6 +148,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
     setShowPassword(false);
     setShowConfirmPassword(false);
     setErrors({});
+    setShowEmailVerification(false);
+    setShowForgotPassword(false);
+    setPendingEmail('');
   };
 
   const handleClose = () => {
@@ -154,6 +172,25 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
     } else {
       setShowConfirmPassword(prev => !prev);
     }
+  };
+
+  const handleVerificationSuccess = (token: string, refreshToken: string, user: any) => {
+    // Store token and user data
+    localStorage.setItem('auth_token', token);
+    localStorage.setItem('refresh_token', refreshToken);
+    localStorage.setItem('user_data', JSON.stringify(user));
+    
+    onClose();
+    resetForm();
+    window.location.href = '/';
+  };
+
+  const handleForgotPassword = () => {
+    setShowForgotPassword(true);
+  };
+
+  const handleBackToLogin = () => {
+    setShowForgotPassword(false);
   };
 
   return (
@@ -343,6 +380,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
               mode === 'login' ? 'Sign In' : 'Create Account'
             )}
           </button>
+
+          {mode === 'login' && (
+            <div className="text-center mt-4">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-primary-600 hover:text-primary-700 font-medium text-sm"
+              >
+                Forgot your password?
+              </button>
+            </div>
+          )}
         </form>
 
         <div className="mt-6 text-center">
@@ -357,6 +406,21 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
           </p>
         </div>
       </div>
+
+      {/* Email Verification Modal */}
+      <EmailVerificationModal
+        isOpen={showEmailVerification}
+        onClose={() => setShowEmailVerification(false)}
+        email={pendingEmail}
+        onVerificationSuccess={handleVerificationSuccess}
+      />
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        onBackToLogin={handleBackToLogin}
+      />
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { 
   PenTool, 
@@ -77,6 +78,16 @@ const Landing: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
+      <Helmet>
+        <title>WriteAnon — Mental Health Writing Platform | Anonymous Journal & Random Chat</title>
+        <meta name="description" content="Express yourself through anonymous writing for mental health support. Share thoughts anonymously, journal daily, chat with random users like Omegle. Safe space for mental wellness, anxiety relief, and emotional expression. Join thousands sharing their stories." />
+        <meta name="keywords" content="mental health writing, anonymous journal, anonymous writing platform, mental health support, express yourself anonymously, random chat, omegle alternative, anonymous thoughts, mental wellness, anxiety journal, depression support, emotional writing, anonymous blog, share thoughts anonymously, mental health community, writing therapy, anonymous mental health, safe space writing, random chat mental health, anonymous expression" />
+        <link rel="canonical" href="https://writeanon.in/landing" />
+        <meta property="og:title" content="WriteAnon — Mental Health Writing Platform | Anonymous Journal & Random Chat" />
+        <meta property="og:description" content="Express yourself through anonymous writing for mental health support. Share thoughts anonymously, journal daily, chat with random users. Safe space for mental wellness." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://writeanon.in/landing" />
+      </Helmet>
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-lg border-b border-neutral-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -6,9 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <!-- Primary meta -->
-    <title>WriteAnon — Your story. Your secret. | Anonymous writing community</title>
-    <meta name="description" content="WriteAnon: Share your thoughts anonymously or publicly. Build daily writing habits, find support, and express yourself without judgment. Join our community today." />
-    <meta name="robots" content="index, follow" />
+    <title>WriteAnon — Mental Health Writing Platform | Anonymous Journal & Random Chat</title>
+    <meta name="description" content="WriteAnon: Express yourself through anonymous writing for mental health support. Share thoughts anonymously, journal daily, chat with random users like Omegle. Safe space for mental wellness, anxiety relief, and emotional expression. Join thousands sharing their stories." />
+    <meta name="keywords" content="mental health writing, anonymous journal, anonymous writing platform, mental health support, express yourself anonymously, random chat, omegle alternative, anonymous thoughts, mental wellness, anxiety journal, depression support, emotional writing, anonymous blog, share thoughts anonymously, mental health community, writing therapy, anonymous mental health, safe space writing, random chat mental health, anonymous expression" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="author" content="WriteAnon" />
+    <meta name="language" content="English" />
     <link rel="canonical" href="https://writeanon.in/" />
 
     <!-- Favicons (PNG fallback + SVG + Apple) -->
@@ -19,21 +22,23 @@
 
     <!-- Open Graph / Social (use absolute URLs) -->
     <meta property="og:site_name" content="WriteAnon" />
-    <meta property="og:title" content="WriteAnon — Your story. Your secret." />
-    <meta property="og:description" content="Share your thoughts anonymously or publicly. Build daily writing habits, find support, and express yourself without judgment." />
+    <meta property="og:title" content="WriteAnon — Mental Health Writing Platform | Anonymous Journal & Random Chat" />
+    <meta property="og:description" content="Express yourself through anonymous writing for mental health support. Share thoughts anonymously, journal daily, chat with random users. Safe space for mental wellness." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://writeanon.in/" />
     <meta property="og:image" content="https://writeanon.in/assets/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="WriteAnon — anonymous writing community" />
+    <meta property="og:image:alt" content="WriteAnon — Mental health writing and anonymous journal platform" />
+    <meta property="og:locale" content="en_US" />
 
     <!-- Twitter card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@writeanon" />
-    <meta name="twitter:title" content="WriteAnon — Your story. Your secret." />
-    <meta name="twitter:description" content="Share your thoughts anonymously or publicly. Build daily writing habits, find support, and express yourself without judgment." />
+    <meta name="twitter:title" content="WriteAnon — Mental Health Writing Platform | Anonymous Journal" />
+    <meta name="twitter:description" content="Express yourself through anonymous writing for mental health support. Share thoughts anonymously, journal daily, chat with random users." />
     <meta name="twitter:image" content="https://writeanon.in/assets/og-image.png" />
+    <meta name="twitter:creator" content="@writeanon" />
 
     <!-- Preconnect / Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -44,7 +49,7 @@
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
 
-    <!-- JSON-LD structured data (Organization + WebSite) -->
+    <!-- JSON-LD structured data (Organization + WebSite + SoftwareApplication + MentalHealthService) -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -55,6 +60,7 @@
             "name": "WriteAnon",
             "url": "https://writeanon.in/",
             "logo": "https://writeanon.in/assets/logo.png",
+            "description": "Anonymous writing platform for mental health support and emotional expression",
             "sameAs": [
               "https://x.com/writeanon"
             ]
@@ -63,7 +69,8 @@
             "@type": "WebSite",
             "@id": "https://writeanon.in/#website",
             "url": "https://writeanon.in/",
-            "name": "WriteAnon",
+            "name": "WriteAnon - Mental Health Writing Platform",
+            "description": "Express yourself through anonymous writing for mental health support. Share thoughts anonymously, journal daily, chat with random users.",
             "publisher": {
               "@id": "https://writeanon.in/#org"
             },
@@ -71,6 +78,40 @@
               "@type": "SearchAction",
               "target": "https://writeanon.in/search?q={search_term_string}",
               "query-input": "required name=search_term_string"
+            },
+            "keywords": "mental health writing, anonymous journal, anonymous writing platform, mental health support, express yourself anonymously, random chat, omegle alternative, anonymous thoughts, mental wellness, anxiety journal, depression support, emotional writing"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "WriteAnon",
+            "applicationCategory": "HealthApplication",
+            "operatingSystem": "Web",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "description": "Anonymous writing platform for mental health support, daily journaling, and connecting with others through random chat",
+            "featureList": [
+              "Anonymous writing and posting",
+              "Daily journal with streak tracking",
+              "Random chat with other users",
+              "Mental health support community",
+              "Private and public posts",
+              "Emotional expression tools"
+            ]
+          },
+          {
+            "@type": "Service",
+            "serviceType": "Mental Health Support Platform",
+            "provider": {
+              "@id": "https://writeanon.in/#org"
+            },
+            "description": "Safe space for mental health support through anonymous writing, journaling, and community connection",
+            "areaServed": "Worldwide",
+            "audience": {
+              "@type": "Audience",
+              "audienceType": "People seeking mental health support and emotional expression"
             }
           }
         ]

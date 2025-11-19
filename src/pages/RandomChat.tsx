@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Helmet } from 'react-helmet-async';
 import {
   Users,
   MessageCircle,
@@ -93,6 +94,11 @@ const RandomChat: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Helmet>
+        <title>Random Chat for writers — Meet people, share ideas | WriteAnon</title>
+        <meta name="description" content="Connect with people around the world via anonymous random chat. Discuss books, life, technology, and more while staying safe." />
+        <link rel="canonical" href="https://writeanon.in/random-chat" />
+      </Helmet>
       <div className="bg-white rounded-2xl shadow-soft border border-neutral-200 overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-primary-500 to-secondary-500 p-6">

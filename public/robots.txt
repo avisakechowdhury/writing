@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Allow: /landing
+Allow: /write
+Allow: /post/*
+
+# Disallow private routes
+Disallow: /messages
+Disallow: /settings
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /reset-password
+
+# Allow random-chat for SEO (it's a public feature)
+Allow: /random-chat
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+Sitemap: https://writeanon.in/sitemap.xml
+
+

@@ -145,6 +145,56 @@ export const usePosts = () => {
     }
   };
 
+  const likeComment = async (postId: string, commentId: string, userId: string) => {
+    try {
+      setPosts(prev =>
+        prev.map(post => {
+          if (post.id !== postId) return post;
+          return {
+            ...post,
+            comments: post.comments.map(comment => {
+              if (comment.id !== commentId) return comment;
+              const isLiked = comment.likedBy.includes(userId);
+              return {
+                ...comment,
+                likes: isLiked ? Math.max(0, comment.likes - 1) : comment.likes + 1,
+                likedBy: isLiked
+                  ? comment.likedBy.filter(id => id !== userId)
+                  : [...comment.likedBy, userId]
+              };
+            })
+          };
+        })
+      );
+
+      await postsAPI.likeComment(postId, commentId);
+    } catch (error: any) {
+      // revert optimistic update
+      setPosts(prev =>
+        prev.map(post => {
+          if (post.id !== postId) return post;
+          return {
+            ...post,
+            comments: post.comments.map(comment => {
+              if (comment.id !== commentId) return comment;
+              const isLiked = !comment.likedBy.includes(userId);
+              return {
+                ...comment,
+                likes: isLiked ? Math.max(0, comment.likes - 1) : comment.likes + 1,
+                likedBy: isLiked
+                  ? comment.likedBy.filter(id => id !== userId)
+                  : [...comment.likedBy, userId]
+              };
+            })
+          };
+        })
+      );
+
+      const message = error.response?.data?.message || 'Failed to update comment like';
+      toast.error(message);
+    }
+  };
+
   const loadMore = () => {
     if (!isLoading && !isLoadingMore && hasMore) {
       loadPosts(page + 1);
@@ -165,6 +215,7 @@ export const usePosts = () => {
     createPost,
     likePost,
     addComment,
+    likeComment,
     loadMore,
     refresh
   };

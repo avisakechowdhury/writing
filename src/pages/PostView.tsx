@@ -23,7 +23,7 @@ const SafeHelmet: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const PostView: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
   const { user } = useAuth();
-  const { likePost, addComment } = usePosts();
+  const { likePost, addComment, likeComment } = usePosts();
   const [post, setPost] = useState<Post | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [canInteract, setCanInteract] = useState(false);
@@ -88,14 +88,15 @@ const PostView: React.FC = () => {
     }
   };
 
-  const handleComment = (postId: string, content: string) => {
+  const handleComment = async (postId: string, content: string) => {
     if (!user) {
       showAuthRequiredToastSimple('comment on posts');
       return;
     }
     
     if (user) {
-      addComment(postId, {
+      try {
+        const newComment = await addComment(postId, {
         postId,
         authorId: user.id,
         authorName: user.displayName,
@@ -104,7 +105,45 @@ const PostView: React.FC = () => {
         likedBy: [],
         reactions: []
       });
+        
+        setPost(prev => {
+          if (!prev || prev.id !== postId || !newComment) return prev;
+          return {
+            ...prev,
+            comments: [...prev.comments, newComment]
+          };
+        });
+      } catch (error) {
+        console.error('Failed to add comment:', error);
+      }
     }
+  };
+
+  const handleLikeComment = (postId: string, commentId: string) => {
+    if (!user) {
+      showAuthRequiredToastSimple('like comments');
+      return;
+    }
+
+    likeComment(postId, commentId, user.id);
+
+    setPost(prev => {
+      if (!prev || prev.id !== postId) return prev;
+      return {
+        ...prev,
+        comments: prev.comments.map(comment => {
+          if (comment.id !== commentId) return comment;
+          const isLiked = comment.likedBy.includes(user.id);
+          return {
+            ...comment,
+            likes: isLiked ? Math.max(0, comment.likes - 1) : comment.likes + 1,
+            likedBy: isLiked
+              ? comment.likedBy.filter(id => id !== user.id)
+              : [...comment.likedBy, user.id]
+          };
+        })
+      };
+    });
   };
 
   if (isLoading) {
@@ -205,6 +244,7 @@ const PostView: React.FC = () => {
         post={post}
         onLike={handleLike}
         onComment={handleComment}
+        onLikeComment={handleLikeComment}
       />
     </div>
   );

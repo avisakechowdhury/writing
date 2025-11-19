@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Search, Filter, Plus, PenTool, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PostCard from '../components/Post/PostCard';
@@ -7,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { showAuthRequiredToastSimple, redirectToLanding } from '../utils/toastUtils';
 
 const Feed: React.FC = () => {
-  const { posts, isLoading, isLoadingMore, hasMore, likePost, addComment, loadMore } = usePosts();
+  const { posts, isLoading, isLoadingMore, hasMore, likePost, addComment, likeComment, loadMore } = usePosts();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMood, setSelectedMood] = useState<string>('all');
@@ -49,6 +50,15 @@ const Feed: React.FC = () => {
     }
   };
 
+  const handleLikeComment = (postId: string, commentId: string) => {
+    if (!user) {
+      redirectToLanding();
+      return;
+    }
+
+    likeComment(postId, commentId, user.id);
+  };
+
   // Infinite scroll handler
   const handleScroll = useCallback(() => {
     if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 1000) {
@@ -67,6 +77,12 @@ const Feed: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Helmet>
+        <title>Mental Health Stories & Anonymous Posts — WriteAnon Community Feed</title>
+        <meta name="description" content="Discover inspiring mental health stories and anonymous posts from writers worldwide. Read about anxiety, depression, emotional wellness, and personal journeys. Share your own thoughts anonymously." />
+        <meta name="keywords" content="mental health stories, anonymous posts, emotional wellness, anxiety stories, depression support, mental health community, anonymous writing, personal journeys, emotional expression" />
+        <link rel="canonical" href="https://writeanon.in/" />
+      </Helmet>
       {/* Header */}
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -174,6 +190,7 @@ const Feed: React.FC = () => {
               post={post}
               onLike={handleLike}
               onComment={handleComment}
+              onLikeComment={handleLikeComment}
             />
           ))}
           

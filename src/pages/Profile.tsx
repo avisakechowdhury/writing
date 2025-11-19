@@ -1,49 +1,31 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   User, 
-  Settings, 
   Flame, 
   Trophy, 
-  Edit,
-  Bell,
-  Eye,
-  EyeOff,
-  Save,
-  Camera
+  Camera,
+  MessageCircle,
+  Heart,
+  TrendingUp
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { usePosts } from '../hooks/usePosts';
 import PostCard from '../components/Post/PostCard';
 
 const Profile: React.FC = () => {
-  const { user, updateUser } = useAuth();
-  const { posts, likePost, addComment } = usePosts();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    displayName: user?.displayName || '',
-    email: user?.email || '',
-    notifications: user?.preferences.notifications || true,
-    reminderTime: user?.preferences.reminderTime || '20:00'
-  });
+  const { user } = useAuth();
+  const { posts, likePost, addComment, likeComment } = usePosts();
 
   if (!user) return null;
 
   const userPosts = posts.filter(post => post.authorId === user.id);
-  const totalLikes = userPosts.reduce((sum, post) => sum + post.likes, 0);
-  const totalComments = userPosts.reduce((sum, post) => sum + post.comments.length, 0);
-
-  const handleSave = () => {
-    updateUser({
-      displayName: editForm.displayName,
-      email: editForm.email,
-      preferences: {
-        ...user.preferences,
-        notifications: editForm.notifications,
-        reminderTime: editForm.reminderTime
-      }
-    });
-    setIsEditing(false);
-  };
+  
+  // Calculate total likes received on user's posts
+  const totalLikesReceived = userPosts.reduce((sum, post) => sum + post.likes, 0);
+  
+  // Calculate total comments received on user's posts
+  const totalCommentsReceived = userPosts.reduce((sum, post) => sum + post.comments.length, 0);
 
   const handleLike = (postId: string) => {
     likePost(postId, user.id);
@@ -59,6 +41,11 @@ const Profile: React.FC = () => {
       likedBy: [],
       reactions: []
     });
+  };
+
+  const handleLikeComment = (postId: string, commentId: string) => {
+    if (!user) return;
+    likeComment(postId, commentId, user.id);
   };
 
   return (
@@ -97,135 +84,47 @@ const Profile: React.FC = () => {
           </div>
           
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="text-center">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="text-center p-4 bg-neutral-50 rounded-lg">
+                <div className="flex items-center justify-center mb-2">
+                  <User className="w-5 h-5 text-primary-600" />
+                </div>
                 <div className="text-2xl font-bold text-neutral-900">{user.totalPosts}</div>
                 <div className="text-sm text-neutral-600">Posts</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-neutral-900">{totalLikes}</div>
-                <div className="text-sm text-neutral-600">Likes</div>
+              <div className="text-center p-4 bg-neutral-50 rounded-lg">
+                <div className="flex items-center justify-center mb-2">
+                  <Heart className="w-5 h-5 text-error-600" />
+                </div>
+                <div className="text-2xl font-bold text-neutral-900">{totalLikesReceived}</div>
+                <div className="text-sm text-neutral-600">Likes Received</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-neutral-900">{totalComments}</div>
-                <div className="text-sm text-neutral-600">Comments</div>
+              <div className="text-center p-4 bg-neutral-50 rounded-lg">
+                <div className="flex items-center justify-center mb-2">
+                  <MessageCircle className="w-5 h-5 text-secondary-600" />
+                </div>
+                <div className="text-2xl font-bold text-neutral-900">{totalCommentsReceived}</div>
+                <div className="text-sm text-neutral-600">Comments Received</div>
               </div>
-              <div className="text-center">
+              <div className="text-center p-4 bg-neutral-50 rounded-lg">
+                <div className="flex items-center justify-center mb-2">
+                  <TrendingUp className="w-5 h-5 text-success-600" />
+                </div>
                 <div className="text-2xl font-bold text-neutral-900">{user.points}</div>
                 <div className="text-sm text-neutral-600">Points</div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Settings */}
-        <div className="bg-white rounded-2xl shadow-soft border border-neutral-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-neutral-900">Settings</h2>
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="flex items-center space-x-2 px-4 py-2 text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
-            >
-              {isEditing ? (
-                <>
-                  <Save className="w-4 h-4" />
-                  <span>Save</span>
-                </>
-              ) : (
-                <>
-                  <Edit className="w-4 h-4" />
-                  <span>Edit</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  Display Name
-                </label>
-                <input
-                  type="text"
-                  value={editForm.displayName}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, displayName: e.target.value }))}
-                  disabled={!isEditing}
-                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-50 disabled:text-neutral-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                  disabled={!isEditing}
-                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-50 disabled:text-neutral-500"
-                />
-              </div>
+            
+            {/* Quick Actions */}
+            <div className="mt-6 pt-6 border-t border-neutral-200">
+              <Link
+                to="/settings"
+                className="inline-flex items-center space-x-2 px-4 py-2 text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
+              >
+                <User className="w-4 h-4" />
+                <span>Manage Settings</span>
+              </Link>
             </div>
-
-            <div className="border-t border-neutral-200 pt-6">
-              <h3 className="text-lg font-medium text-neutral-900 mb-4">Preferences</h3>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Bell className="w-5 h-5 text-neutral-600" />
-                    <div>
-                      <div className="font-medium text-neutral-900">Notifications</div>
-                      <div className="text-sm text-neutral-600">Receive daily writing reminders</div>
-                    </div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editForm.notifications}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, notifications: e.target.checked }))}
-                      disabled={!isEditing}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                  </label>
-                </div>
-
-                {editForm.notifications && (
-                  <div className="ml-8">
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Reminder Time
-                    </label>
-                    <input
-                      type="time"
-                      value={editForm.reminderTime}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, reminderTime: e.target.value }))}
-                      disabled={!isEditing}
-                      className="px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-50 disabled:text-neutral-500"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {isEditing && (
-              <div className="flex space-x-4">
-                <button
-                  onClick={handleSave}
-                  className="px-6 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold rounded-lg hover:from-primary-600 hover:to-secondary-600 transition-all duration-200"
-                >
-                  Save Changes
-                </button>
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="px-6 py-3 border border-neutral-300 text-neutral-700 font-medium rounded-lg hover:bg-neutral-50 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
@@ -249,6 +148,7 @@ const Profile: React.FC = () => {
                   post={post}
                   onLike={handleLike}
                   onComment={handleComment}
+                  onLikeComment={handleLikeComment}
                 />
               ))}
             </div>
