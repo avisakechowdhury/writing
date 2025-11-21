@@ -47,17 +47,20 @@ export const sanitizeString = (str) => {
  */
 export const sanitizeMongoInput = (input) => {
   if (typeof input === 'string') {
-    // Remove MongoDB operators
-    return input.replace(/\$|\./g, '');
+    // FIX: Only remove $ characters. 
+    // We MUST allow dots (.) because emails and sentences need them.
+    return input.replace(/\$/g, '');
   }
+  
   if (typeof input === 'object' && input !== null) {
     if (Array.isArray(input)) {
       return input.map(item => sanitizeMongoInput(item));
     }
     const sanitized = {};
     for (const key in input) {
-      // Remove keys that start with $ (MongoDB operators)
-      if (!key.startsWith('$')) {
+      // Security: Remove keys that start with $ (MongoDB operators)
+      // Security: Prevent keys with dots (prevent object path manipulation)
+      if (!key.startsWith('$') && !key.includes('.')) {
         sanitized[key] = sanitizeMongoInput(input[key]);
       }
     }
