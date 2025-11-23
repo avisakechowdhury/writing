@@ -1,4 +1,7 @@
 import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // Create transporter
 const createTransporter = () => {
@@ -10,19 +13,21 @@ const createTransporter = () => {
   if (emailService.toLowerCase() === 'gmail') {
     return nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // true for 465, false for other ports
+      // CRITICAL FIX FOR RENDER: Use Port 465 (SSL) instead of 587
+      port: 465, 
+      secure: true, // Must be true for port 465
       auth: {
         user: emailUser,
         pass: emailPass
       },
       tls: {
-        rejectUnauthorized: false
+        // This is necessary for some hosting environments to accept self-signed certs if needed
+        rejectUnauthorized: false 
       },
       connectionTimeout: 20000, // 20 seconds
       greetingTimeout: 20000, // 20 seconds
       socketTimeout: 20000, // 20 seconds
-      // Add pool configuration for better connection management
+      // Pool configuration
       pool: true,
       maxConnections: 1,
       maxMessages: 3,
@@ -81,7 +86,7 @@ export const sendEmailVerificationOTP = async (email, otp) => {
     const transporter = createTransporter();
     
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: `WriteAnon <${process.env.EMAIL_USER}>`, // Better formatting for "From"
       to: email,
       subject: 'Verify Your WriteAnon Account',
       html: `
@@ -111,7 +116,7 @@ export const sendEmailVerificationOTP = async (email, otp) => {
           </div>
           
           <div style="text-align: center; margin-top: 30px; color: #9CA3AF; font-size: 12px;">
-            <p>© 2024 WriteAnon. All rights reserved.</p>
+            <p>© 2025 WriteAnon. All rights reserved.</p>
           </div>
         </div>
       `
@@ -122,6 +127,7 @@ export const sendEmailVerificationOTP = async (email, otp) => {
     return true;
   } catch (error) {
     console.error('Error sending email verification OTP:', error);
+    // Don't crash the server, just return false
     return false;
   }
 };
@@ -130,10 +136,12 @@ export const sendEmailVerificationOTP = async (email, otp) => {
 export const sendPasswordResetEmail = async (email, resetToken) => {
   try {
     const transporter = createTransporter();
-    const resetUrl = `${process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    // Ensure we handle multiple URLs if comma separated, taking the first one
+    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim();
+    const resetUrl = `${clientUrl}/reset-password?token=${resetToken}`;
     
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: `WriteAnon <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Reset Your WriteAnon Password',
       html: `
@@ -169,7 +177,7 @@ export const sendPasswordResetEmail = async (email, resetToken) => {
           </div>
           
           <div style="text-align: center; margin-top: 30px; color: #9CA3AF; font-size: 12px;">
-            <p>© 2024 WriteAnon. All rights reserved.</p>
+            <p>© 2025 WriteAnon. All rights reserved.</p>
           </div>
         </div>
       `
