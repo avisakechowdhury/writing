@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { Analytics } from '@vercel/analytics/react';
 import Layout from './components/Layout/Layout';
 import Landing from './pages/Landing';
 import Feed from './pages/Feed';
@@ -149,6 +150,7 @@ const AppContent: React.FC = () => {
           {/* Chat Widget - only show for authenticated users */}
           {user && <ChatWidget />}
         </div>
+        <Analytics />
       </Router>
     </ErrorBoundary>
   );

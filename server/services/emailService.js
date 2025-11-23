@@ -2,31 +2,77 @@ import nodemailer from 'nodemailer';
 
 // Create transporter
 const createTransporter = () => {
-  // For development, use Gmail SMTP
-  if (process.env.NODE_ENV === 'development' || !process.env.EMAIL_SERVICE) {
+  const emailService = process.env.EMAIL_SERVICE || 'gmail';
+  const emailUser = process.env.EMAIL_USER;
+  const emailPass = process.env.EMAIL_PASS;
+
+  // For Gmail, use explicit configuration with proper timeout and connection settings
+  if (emailService.toLowerCase() === 'gmail') {
     return nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // true for 465, false for other ports
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: emailUser,
+        pass: emailPass
       },
       tls: {
         rejectUnauthorized: false
-      }
+      },
+      connectionTimeout: 20000, // 20 seconds
+      greetingTimeout: 20000, // 20 seconds
+      socketTimeout: 20000, // 20 seconds
+      // Add pool configuration for better connection management
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 3,
+      rateDelta: 1000,
+      rateLimit: 5
     });
   }
 
-  // For production, use the configured service
+  // For other services, use service name with improved settings
   return nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE,
+    service: emailService,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
+      user: emailUser,
+      pass: emailPass
     },
     tls: {
       rejectUnauthorized: false
-    }
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000
   });
+};
+
+// Helper function to send email with retry logic
+const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 2) => {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await transporter.sendMail(mailOptions);
+      return true;
+    } catch (error) {
+      lastError = error;
+      console.error(`Email send attempt ${attempt} failed:`, error.message);
+      
+      // If it's a timeout error and we have retries left, wait and retry
+      if (attempt < maxRetries && (error.code === 'ETIMEDOUT' || error.code === 'ECONNRESET')) {
+        const waitTime = attempt * 1000; // Exponential backoff: 1s, 2s
+        console.log(`Retrying email send in ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      
+      // For other errors or last attempt, throw
+      throw error;
+    }
+  }
+  
+  throw lastError;
 };
 
 // Send email verification OTP
@@ -71,7 +117,7 @@ export const sendEmailVerificationOTP = async (email, otp) => {
       `
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmailWithRetry(transporter, mailOptions);
     console.log(`Email verification OTP sent to ${email}`);
     return true;
   } catch (error) {
@@ -84,7 +130,7 @@ export const sendEmailVerificationOTP = async (email, otp) => {
 export const sendPasswordResetEmail = async (email, resetToken) => {
   try {
     const transporter = createTransporter();
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
@@ -129,7 +175,7 @@ export const sendPasswordResetEmail = async (email, resetToken) => {
       `
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmailWithRetry(transporter, mailOptions);
     console.log(`Password reset email sent to ${email}`);
     return true;
   } catch (error) {
