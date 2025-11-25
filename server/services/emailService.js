@@ -20,6 +20,12 @@ const createTransporter = () => {
         user: emailUser,
         pass: emailPass
       },
+      // 👇 ADD THIS LINE: Forces Node to use IPv4
+      family: 4, 
+      
+      // 👇 ADD THESE LINES: Enable detailed logging to see exactly what's happening
+      logger: true,
+      debug: true,
       tls: {
         // This is necessary for some hosting environments to accept self-signed certs if needed
         rejectUnauthorized: false 
@@ -84,6 +90,16 @@ const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 2) => {
 export const sendEmailVerificationOTP = async (email, otp) => {
   try {
     const transporter = createTransporter();
+    // 👇 ADD THIS DEBUG BLOCK
+    console.log("Attempting to verify SMTP connection...");
+    try {
+        await transporter.verify();
+        console.log("✅ SMTP Connection Successful!");
+    } catch (verifyError) {
+        console.error("❌ SMTP Connection Failed during verify:", verifyError);
+        return false; // Stop here if we can't connect
+    }
+    // 👆 END DEBUG BLOCK
     
     const mailOptions = {
       from: `WriteAnon <${process.env.EMAIL_USER}>`, // Better formatting for "From"

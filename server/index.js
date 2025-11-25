@@ -26,30 +26,44 @@ const app = express();
 
 app.set('trust proxy', 1);
 
+// -------------------------------------------------------------
+// 1. CENTRALIZED URL PARSING (The Fix)
+// -------------------------------------------------------------
+// Split the comma-separated string into a clean array of URLs
+const clientUrls = (process.env.CLIENT_URL || "")
+  .split(",")
+  .map(url => url.trim())
+  .filter(url => url.length > 0);
+
+// Default fallback if env var is empty
+if (clientUrls.length === 0) {
+  clientUrls.push("http://localhost:5173");
+}
+
+// Add static origins that should always be allowed
+const allAllowedOrigins = [
+  ...clientUrls,
+  "https://anonwriter.vercel.app",
+  "https://www.writeanon.in",
+  "https://writeanon.in",
+  "http://localhost:5173"
+];
+
+// Remove duplicates using Set
+const uniqueOrigins = [...new Set(allAllowedOrigins)];
+// -------------------------------------------------------------
+
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: [
-      process.env.CLIENT_URL || "http://localhost:5173",
-      "https://anonwriter.vercel.app",
-      "https://www.writeanon.in", // Add the frontend origin
-      "http://localhost:5173"
-    ],
+    // ✅ FIXED: Using the array instead of raw string
+    origin: uniqueOrigins,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
   }
 });
 
 // Connect to MongoDB
 connectDB();
-
-// Security middleware
-const allowedOrigins = [
-  ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : ["http://localhost:5173"]),
-  "https://anonwriter.vercel.app",
-  "https://www.writeanon.in",
-  "https://writeanon.in",
-  "http://localhost:5173"
-].filter(Boolean);
 
 // Enhanced Helmet configuration for security
 app.use(helmet({
@@ -60,7 +74,8 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", process.env.CLIENT_URL || "https://writeanon.in"],
+      // ✅ FIXED: Spreading the array correctly
+      connectSrc: ["'self'", ...uniqueOrigins],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
@@ -75,7 +90,7 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+    if (uniqueOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
