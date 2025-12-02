@@ -192,21 +192,83 @@ const PostView: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {post && (
-        <SafeHelmet>
-          <title>{post.title || 'Post'} - WriteAnon</title>
-          <meta name="description" content={post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 160) : 'Read this post on WriteAnon'} />
-          <meta property="og:title" content={post.title || 'Post'} />
-          <meta property="og:description" content={post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 200) : 'Read this post on WriteAnon'} />
-          <meta property="og:type" content="article" />
-          <meta property="og:url" content={`${window.location.origin}/post/${post.id}`} />
-          <meta property="og:image" content="/Gemini_Generated_Image_p3k1qbp3k1qbp3k1.png" />
-          <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:title" content={post.title || 'Post'} />
-          <meta name="twitter:description" content={post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 200) : 'Read this post on WriteAnon'} />
-          <meta name="twitter:image" content="/Gemini_Generated_Image_p3k1qbp3k1qbp3k1.png" />
-        </SafeHelmet>
-      )}
+      {post && (() => {
+        const postUrl = `${window.location.origin}/post/${post.id}`;
+        const plainContent = post.content ? post.content.replace(/<[^>]*>/g, '').trim() : '';
+        const description = plainContent.substring(0, 160) || 'Read this post on WriteAnon';
+        const fullDescription = plainContent.substring(0, 200) || 'Read this post on WriteAnon';
+        const authorName = post.isAnonymous ? 'Anonymous' : post.authorName;
+        const publishedDate = post.createdAt.toISOString();
+        const modifiedDate = post.updatedAt.toISOString();
+        
+        return (
+          <SafeHelmet>
+            <title>{post.title || 'Post'} - WriteAnon</title>
+            <meta name="description" content={description} />
+            <link rel="canonical" href={postUrl} />
+            
+            {/* Open Graph / Facebook */}
+            <meta property="og:title" content={post.title || 'Post'} />
+            <meta property="og:description" content={fullDescription} />
+            <meta property="og:type" content="article" />
+            <meta property="og:url" content={postUrl} />
+            <meta property="og:image" content={`${window.location.origin}/logo.png`} />
+            <meta property="og:image:width" content="1200" />
+            <meta property="og:image:height" content="630" />
+            <meta property="og:site_name" content="WriteAnon" />
+            <meta property="article:published_time" content={publishedDate} />
+            <meta property="article:modified_time" content={modifiedDate} />
+            <meta property="article:author" content={authorName} />
+            {post.tags && post.tags.length > 0 && post.tags.map((tag, idx) => (
+              <meta key={idx} property="article:tag" content={tag} />
+            ))}
+            
+            {/* Twitter Card */}
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:title" content={post.title || 'Post'} />
+            <meta name="twitter:description" content={fullDescription} />
+            <meta name="twitter:image" content={`${window.location.origin}/logo.png`} />
+            <meta name="twitter:site" content="@writeanon" />
+            
+            {/* Additional SEO meta tags */}
+            <meta name="keywords" content={post.tags ? post.tags.join(', ') : 'writing, mental health, anonymous writing'} />
+            <meta name="author" content={authorName} />
+            <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+            
+            {/* Structured Data (JSON-LD) for better search engine understanding */}
+            <script type="application/ld+json">
+              {JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "BlogPosting",
+                "headline": post.title || 'Post',
+                "description": fullDescription,
+                "url": postUrl,
+                "datePublished": publishedDate,
+                "dateModified": modifiedDate,
+                "author": {
+                  "@type": post.isAnonymous ? "Person" : "Person",
+                  "name": authorName
+                },
+                "publisher": {
+                  "@type": "Organization",
+                  "name": "WriteAnon",
+                  "logo": {
+                    "@type": "ImageObject",
+                    "url": `${window.location.origin}/logo.png`
+                  }
+                },
+                "mainEntityOfPage": {
+                  "@type": "WebPage",
+                  "@id": postUrl
+                },
+                "keywords": post.tags ? post.tags.join(', ') : 'writing, mental health',
+                "articleSection": "Mental Health Writing",
+                "wordCount": post.wordCount || 0
+              })}
+            </script>
+          </SafeHelmet>
+        );
+      })()}
       
       {/* Header */}
       <div className="flex items-center justify-between mb-6">

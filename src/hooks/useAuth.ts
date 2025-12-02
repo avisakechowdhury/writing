@@ -106,35 +106,38 @@ export const useAuthService = () => {
       setIsLoading(true);
       const response = await authAPI.register(email, password, username, displayName);
       
-      // Check if email verification is required
+      // Email verification is temporarily disabled - users are auto-activated
+      // Check if email verification is required (for future when re-enabled)
       if (response.requiresVerification) {
         // Don't set user or redirect, just return the response
         return response;
       }
       
-      // Store token and user data (for immediate verification)
-      localStorage.setItem('auth_token', response.token);
-      localStorage.setItem('refresh_token', response.refreshToken);
-      localStorage.setItem('user_data', JSON.stringify(response.user));
-      
-      const userData = {
-        ...response.user,
-        joinedDate: new Date(response.user.joinedDate)
-      };
-      
-      setUser(userData);
-      
-      // Connect to socket only if not already connected
-      if (!socketService.getSocket()?.connected) {
-        socketService.connect(response.token);
-      } else {
-        socketService.updateAuthToken(response.token);
+      // Store token and user data (immediate login after registration)
+      if (response.token && response.refreshToken && response.user) {
+        localStorage.setItem('auth_token', response.token);
+        localStorage.setItem('refresh_token', response.refreshToken);
+        localStorage.setItem('user_data', JSON.stringify(response.user));
+        
+        const userData = {
+          ...response.user,
+          joinedDate: new Date(response.user.joinedDate)
+        };
+        
+        setUser(userData);
+        
+        // Connect to socket only if not already connected
+        if (!socketService.getSocket()?.connected) {
+          socketService.connect(response.token);
+        } else {
+          socketService.updateAuthToken(response.token);
+        }
+        
+        toast.success(`Welcome to WriteAnon, ${userData.displayName}!`);
+        
+        // Redirect to feed immediately
+        window.location.href = '/';
       }
-      
-      toast.success(`Welcome to WriteAnon, ${userData.displayName}!`);
-      
-      // Redirect to feed immediately
-      window.location.href = '/';
       
       return response;
     } catch (error: any) {

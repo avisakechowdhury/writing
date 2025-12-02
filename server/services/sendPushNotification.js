@@ -1,18 +1,64 @@
 import webpush from 'web-push';
 import User from '../models/User.js';
 
+// Configure web push if VAPID keys are available
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY && process.env.VAPID_EMAIL) {
+  try {
+    webpush.setVapidDetails(
+      `mailto:${process.env.VAPID_EMAIL}`,
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+    console.log('Web push notifications configured');
+  } catch (error) {
+    console.error('Failed to configure web push:', error);
+  }
+} else {
+  console.warn('VAPID keys not configured. Push notifications will not work.');
+}
+
 export async function sendPushNotification(userId, payload) {
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
     console.warn('VAPID keys not configured. Push notifications will not work.');
-    return;
+    return false;
   }
 
-  const user = await User.findById(userId);
-  if (!user || !user.pushSubscription) return;
-
   try {
-    await webpush.sendNotification(user.pushSubscription, JSON.stringify(payload));
+    const user = await User.findById(userId);
+    if (!user || !user.pushSubscription) {
+      console.log(`User ${userId} has no push subscription`);
+      return false;
+    }
+
+    // Ensure payload is properly formatted
+    const notificationPayload = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    
+    try {
+      await webpush.sendNotification(user.pushSubscription, notificationPayload);
+      console.log(`Push notification sent successfully to user ${userId}`);
+      return true;
+    } catch (error) {
+      console.error(`Error sending push notification to user ${userId}:`, error);
+      
+      // Handle specific error cases
+      if (error.statusCode === 410) {
+        // Subscription expired or no longer valid
+        console.log(`Removing expired push subscription for user ${userId}`);
+        await User.findByIdAndUpdate(userId, {
+          pushSubscription: null
+        });
+      } else if (error.statusCode === 429) {
+        // Too many requests
+        console.warn(`Rate limit exceeded for push notifications to user ${userId}`);
+      } else if (error.statusCode === 400) {
+        // Invalid request
+        console.error(`Invalid push notification request for user ${userId}:`, error.body);
+      }
+      
+      return false;
+    }
   } catch (error) {
-    console.error('Error sending push notification:', error);
+    console.error('Error in sendPushNotification:', error);
+    return false;
   }
 } 

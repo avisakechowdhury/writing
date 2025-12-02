@@ -14,6 +14,7 @@ import messageRoutes from './routes/messages.js';
 import notificationRoutes from './routes/notifications.js';
 import randomChatRoutes from './routes/randomChat.js';
 import reportRoutes from './routes/reports.js';
+import Post from './models/Post.js';
 import { authenticateSocket } from './middleware/auth.js';
 import { setupCronJobs } from './services/cronJobs.js';
 import Message from './models/Message.js';
@@ -160,6 +161,83 @@ app.use('/api/reports', reportRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Dynamic sitemap generation for SEO
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const baseUrl = process.env.CLIENT_URL?.split(',')[0]?.trim() || 'https://writeanon.in';
+    
+    // Get recent public posts (last 1000 for sitemap)
+    const recentPosts = await Post.find({ 
+      isPublic: true, 
+      isDraft: false 
+    })
+      .sort({ createdAt: -1 })
+      .limit(1000)
+      .select('_id updatedAt')
+      .lean();
+    
+    let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  <url>
+    <loc>${baseUrl}/</loc>
+    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/landing</loc>
+    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/write</loc>
+    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/random-chat</loc>
+    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+    
+    // Add individual post URLs
+    recentPosts.forEach(post => {
+      const lastmod = post.updatedAt ? new Date(post.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      sitemap += `
+  <url>
+    <loc>${baseUrl}/post/${post._id}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+    });
+    
+    sitemap += `
+</urlset>`;
+    
+    res.set('Content-Type', 'application/xml');
+    res.send(sitemap);
+  } catch (error) {
+    console.error('Error generating sitemap:', error);
+    // Return basic sitemap on error
+    res.set('Content-Type', 'application/xml');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${process.env.CLIENT_URL?.split(',')[0]?.trim() || 'https://writeanon.in'}/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>`);
+  }
 });
 
 // Socket.IO for real-time features

@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import User from '../models/User.js';
 import { authenticate } from '../middleware/auth.js';
 import { sendEmailVerificationOTP, sendPasswordResetEmail, generateOTP } from '../services/emailService.js';
+import { validateEmail } from '../utils/emailValidation.js';
 
 const router = express.Router();
 
@@ -99,75 +100,65 @@ router.post('/register', [
       passwordLength: password ? password.length : 0
     });
 
-    // Check if user already exists (including unverified accounts)
+    // Validate email (check for disposable/fake emails)
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return res.status(400).json({
+        message: emailValidation.reason || 'Invalid email address'
+      });
+    }
+
+    // Check if user already exists
     const existingUser = await User.findOne({
       $or: [{ email }, { username }]
     });
 
     if (existingUser) {
-      if (existingUser.isEmailVerified) {
-        return res.status(400).json({
-          message: existingUser.email === email ? 'Email already registered' : 'Username already taken'
-        });
-      } else {
-        // User exists but not verified, update with new data and resend OTP
-        existingUser.password = password;
-        existingUser.username = username;
-        existingUser.displayName = displayName;
-        
-        // Generate new OTP
-        const otp = generateOTP();
-        existingUser.emailVerificationToken = otp;
-        existingUser.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-        await existingUser.save();
-
-        // Send verification email
-        const emailSent = await sendEmailVerificationOTP(email, otp);
-        
-        if (!emailSent) {
-          return res.status(500).json({ 
-            message: 'Failed to send verification email. Please try again.' 
-          });
-        }
-
-        return res.status(201).json({
-          message: 'Verification code sent to your email. Please verify to complete registration.',
-          requiresVerification: true,
-          email: existingUser.email
-        });
-      }
+      return res.status(400).json({
+        message: existingUser.email === email ? 'Email already registered' : 'Username already taken'
+      });
     }
 
-    // Create new user (not active until email verified)
+    // TEMPORARILY DISABLED: Email OTP verification
+    // Create new user and auto-activate (email verification disabled for now)
     const user = new User({
       email,
       password,
       username,
       displayName,
-      isActive: false // User will be activated after email verification
+      isActive: true, // Auto-activate user (email verification disabled)
+      isEmailVerified: true // Mark as verified (email verification disabled)
     });
 
-    // Generate OTP for email verification
-    const otp = generateOTP();
-    user.emailVerificationToken = otp;
-    user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    // COMMENTED OUT: Email OTP generation and sending
+    // const otp = generateOTP();
+    // user.emailVerificationToken = otp;
+    // user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    
     await user.save();
 
-    // Send verification email
-    const emailSent = await sendEmailVerificationOTP(email, otp);
-    
-    if (!emailSent) {
-      // If email fails, delete the user
-      await User.findByIdAndDelete(user._id);
-      return res.status(500).json({ 
-        message: 'Failed to send verification email. Please try again.' 
-      });
-    }
+    // COMMENTED OUT: Email sending
+    // const emailSent = await sendEmailVerificationOTP(email, otp);
+    // if (!emailSent) {
+    //   await User.findByIdAndDelete(user._id);
+    //   return res.status(500).json({ 
+    //     message: 'Failed to send verification email. Please try again.' 
+    //   });
+    // }
+
+    // Generate tokens for immediate login
+    const refreshToken = appendRefreshToken(user);
+    await user.save();
+
+    const token = generateToken(user._id);
+    const userData = buildUserResponse(user);
 
     res.status(201).json({
-      message: 'Registration successful! Please check your email for verification code.',
-      requiresVerification: true,
-      email: user.email
+      message: 'Registration successful!',
+      token,
+      refreshToken,
+      user: userData,
+      requiresVerification: false // No verification required
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -188,7 +179,7 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
-    // Find user
+    // Find user (allow unverified users to login temporarily since email verification is disabled)
     const user = await User.findOne({ email, isActive: true });
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
