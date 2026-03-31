@@ -3,6 +3,17 @@ import { notificationsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
+const urlBase64ToUint8Array = (base64String: string) => {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i += 1) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+};
+
 export const useNotifications = () => {
   const { user } = useAuth();
   const [isSupported, setIsSupported] = useState(false);
@@ -46,10 +57,15 @@ export const useNotifications = () => {
 
     try {
       const registration = await navigator.serviceWorker.ready;
+      const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+      if (!vapidKey) {
+        toast.error('Push notifications are not configured for this environment');
+        return false;
+      }
       
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY
+        applicationServerKey: urlBase64ToUint8Array(vapidKey)
       });
 
       await notificationsAPI.subscribe(subscription);
@@ -80,11 +96,28 @@ export const useNotifications = () => {
 
   const sendTestNotification = async () => {
     try {
-      await notificationsAPI.sendTest();
-      toast.success('Test notification sent!');
-    } catch (error) {
+      if (permission !== 'granted') {
+        const granted = await requestPermission();
+        if (!granted) return;
+      }
+
+      if (!isSubscribed) {
+        await subscribe();
+      }
+
+      const response = await notificationsAPI.sendTest();
+      toast.success(response?.message || 'Test notification sent!');
+      window.dispatchEvent(new CustomEvent('notifications:updated'));
+    } catch (error: unknown) {
       console.error('Error sending test notification:', error);
-      toast.error('Failed to send test notification');
+      const message =
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof (error as { response?: { data?: { message?: string } } }).response?.data?.message === 'string'
+          ? (error as { response: { data: { message: string } } }).response.data.message
+          : 'Failed to send test notification';
+      toast.error(message);
     }
   };
 

@@ -8,8 +8,10 @@ export const authenticate = async (req, res, next) => {
     if (!token) {
       return res.status(401).json({ message: 'No token provided' });
     }
-    
-    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-for-development';
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET environment variable is not set');
+    }
     const decoded = jwt.verify(token, jwtSecret);
     const user = await User.findById(decoded.userId).select('-password');
     
@@ -32,7 +34,10 @@ export const authenticateSocket = async (socket, next) => {
       return next(new Error('No token provided'));
     }
     
-    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-for-development';
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET environment variable is not set');
+    }
     const decoded = jwt.verify(token, jwtSecret);
     const user = await User.findById(decoded.userId).select('-password');
     
@@ -53,7 +58,10 @@ export const optionalAuth = async (req, res, next) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
     if (token) {
-      const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-for-development';
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        throw new Error('JWT_SECRET environment variable is not set');
+      }
       const decoded = jwt.verify(token, jwtSecret);
       const user = await User.findById(decoded.userId).select('-password');
       

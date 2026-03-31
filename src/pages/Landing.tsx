@@ -87,6 +87,7 @@ const Landing: React.FC = () => {
         <meta property="og:description" content="Express yourself through anonymous writing for mental health support. Share thoughts anonymously, journal daily, chat with random users. Safe space for mental wellness." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://writeanon.in/landing" />
+        <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
       </Helmet>
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-lg border-b border-neutral-200 sticky top-0 z-40">
@@ -108,6 +109,12 @@ const Landing: React.FC = () => {
               >
                 Sign In
               </button>
+              <Link
+                to="/connect"
+                className="hidden sm:inline-flex px-4 py-2 text-neutral-600 hover:text-neutral-900 font-medium transition-colors"
+              >
+                Connect
+              </Link>
               <button
                 onClick={handleGetStarted}
                 className="px-6 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold rounded-lg hover:from-primary-600 hover:to-secondary-600 transition-all duration-200"

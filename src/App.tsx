@@ -14,6 +14,8 @@ import Settings from './pages/Settings';
 import PostView from './pages/PostView';
 import RandomChat from './pages/RandomChat';
 import ResetPassword from './pages/ResetPassword';
+import Connect from './pages/Connect';
+import Notifications from './pages/Notifications';
 import ChatWidget from './components/Chat/ChatWidget';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -69,83 +71,95 @@ const AppContent: React.FC = () => {
             }}
           />
           <Routes>
-          <Route path="/landing" element={<Landing />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/" element={<Layout />}>
-            <Route 
-              index 
-              element={<Feed />}
-            />
-            <Route 
-              path="write" 
-              element={
-                <ProtectedRoute>
-                  <Write />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="dashboard" 
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="profile" 
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="profile/:userId" 
-              element={
-                <ProtectedRoute>
-                  <UserProfile />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="messages" 
-              element={
-                <ProtectedRoute>
-                  <Messages />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="messages/:userId" 
-              element={
-                <ProtectedRoute>
-                  <Messages />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="settings" 
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="post/:postId" 
-              element={<PostView />}
-            />
-            <Route 
-              path="random-chat" 
-              element={
-                <ProtectedRoute>
-                  <RandomChat />
-                </ProtectedRoute>
-              } 
-            />
-          </Route>
-        </Routes>
+            <Route path="/landing" element={<Landing />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/" element={<Layout />}>
+              <Route 
+                index 
+                element={<Feed />}
+              />
+              <Route 
+                path="write" 
+                element={
+                  <ProtectedRoute>
+                    <Write />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="profile" 
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="profile/:userId" 
+                element={
+                  <ProtectedRoute>
+                    <UserProfile />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="messages" 
+                element={
+                  <ProtectedRoute>
+                    <Messages />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="messages/:userId" 
+                element={
+                  <ProtectedRoute>
+                    <Messages />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="settings" 
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="post/:postId" 
+                element={<PostView />}
+              />
+              <Route 
+                path="random-chat" 
+                element={
+                  <ProtectedRoute>
+                    <RandomChat />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route
+                path="notifications"
+                element={
+                  <ProtectedRoute>
+                    <Notifications />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="connect"
+                element={<Connect />}
+              />
+            </Route>
+          </Routes>
         
           {/* Chat Widget - only show for authenticated users */}
           {user && <ChatWidget />}

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
+import { authAPI } from '../services/api';
 import ChangePasswordModal from '../components/Auth/ChangePasswordModal';
 import EmailChangeModal from '../components/Auth/EmailChangeModal';
 import toast from 'react-hot-toast';
@@ -48,6 +49,16 @@ const Settings: React.FC = () => {
   const handleSave = async () => {
     setIsLoading(true);
     try {
+      await authAPI.updateProfile({
+        displayName: settings.displayName,
+        preferences: {
+          notifications: settings.notifications,
+          reminderTime: settings.reminderTime,
+          isAnonymous: settings.isAnonymous,
+          timezone: settings.timezone
+        }
+      });
+
       updateUser({
         displayName: settings.displayName,
         preferences: {
@@ -59,7 +70,7 @@ const Settings: React.FC = () => {
         }
       });
       toast.success('Settings saved successfully!');
-    } catch (error) {
+    } catch {
       toast.error('Failed to save settings');
     } finally {
       setIsLoading(false);

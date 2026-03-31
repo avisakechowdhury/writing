@@ -4,7 +4,8 @@ import Post from '../models/Post.js';
 import User from '../models/User.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { sendPushNotification } from '../services/sendPushNotification.js';
-import { isValidObjectId } from '../utils/validation.js';
+import { createInAppNotification } from '../services/notificationService.js';
+import { isValidObjectId, sanitizeHTML } from '../utils/validation.js';
 
 const router = express.Router();
 
@@ -193,10 +194,12 @@ router.post('/', authenticate, [
 
     const { title, content, isAnonymous = false, tags = [], mood, isDraft = false } = req.body;
 
+    const safeContent = sanitizeHTML(content);
+
     // Create post data
     const postData = {
       title,
-      content,
+      content: safeContent,
       authorId: req.user._id,
       authorName: isAnonymous ? 'Anonymous' : req.user.displayName,
       isAnonymous,
@@ -291,6 +294,14 @@ router.post('/:id/like', authenticate, async (req, res) => {
       post.likes += 1;
       // Send push notification to post author if not self-like
       if (post.authorId.toString() !== userId.toString()) {
+        await createInAppNotification({
+          userId: post.authorId,
+          actorId: userId,
+          type: 'like',
+          title: 'Your post got a new like',
+          body: `${req.user.displayName} liked your post "${post.title}"`,
+          url: `/post/${post._id}`
+        });
         sendPushNotification(post.authorId, {
           title: 'Your post was liked!',
           body: `${req.user.displayName} liked your post.`,
@@ -338,7 +349,7 @@ router.post('/:id/comments', authenticate, [
     const comment = {
       authorId: req.user._id,
       authorName: req.user.displayName,
-      content: req.body.content,
+      content: sanitizeHTML(req.body.content),
       likes: 0,
       likedBy: [],
       reactions: []
@@ -352,6 +363,14 @@ router.post('/:id/comments', authenticate, [
 
     // Send push notification to post author if not self-comment
     if (post.authorId.toString() !== req.user._id.toString()) {
+      await createInAppNotification({
+        userId: post.authorId,
+        actorId: req.user._id,
+        type: 'comment',
+        title: 'New comment on your post',
+        body: `${req.user.displayName} commented on "${post.title}"`,
+        url: `/post/${post._id}`
+      });
       sendPushNotification(post.authorId, {
         title: 'New comment on your post!',
         body: `${req.user.displayName} commented: ${req.body.content}`,

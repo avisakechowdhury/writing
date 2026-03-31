@@ -54,6 +54,10 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  lastReminderSentAt: {
+    type: Date,
+    default: null
+  },
   followers: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -222,7 +226,8 @@ userSchema.methods.generateEmailVerificationToken = function() {
 // Generate password reset token
 userSchema.methods.generatePasswordResetToken = function() {
   const token = crypto.randomBytes(32).toString('hex');
-  this.resetPasswordToken = token;
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  this.resetPasswordToken = hashedToken;
   this.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
   return token;
 };
@@ -235,7 +240,8 @@ userSchema.methods.isEmailVerificationTokenValid = function(token) {
 
 // Check if password reset token is valid
 userSchema.methods.isPasswordResetTokenValid = function(token) {
-  return this.resetPasswordToken === token && 
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  return this.resetPasswordToken === hashedToken && 
          this.resetPasswordExpires > Date.now();
 };
 

@@ -49,6 +49,23 @@ export interface Report {
   createdAt: Date;
 }
 
+export interface AppNotification {
+  _id: string;
+  userId: string;
+  actorId?: {
+    _id: string;
+    displayName: string;
+    username: string;
+  } | null;
+  type: 'like' | 'comment' | 'follow' | 'message' | 'reminder' | 'system';
+  title: string;
+  body: string;
+  url: string;
+  isRead: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Post {
   id: string;
   title: string;

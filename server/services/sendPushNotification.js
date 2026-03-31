@@ -1,11 +1,13 @@
 import webpush from 'web-push';
 import User from '../models/User.js';
 
+const vapidEmail = process.env.VAPID_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@writeanon.in';
+
 // Configure web push if VAPID keys are available
-if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY && process.env.VAPID_EMAIL) {
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   try {
     webpush.setVapidDetails(
-      `mailto:${process.env.VAPID_EMAIL}`,
+      `mailto:${vapidEmail}`,
       process.env.VAPID_PUBLIC_KEY,
       process.env.VAPID_PRIVATE_KEY
     );
@@ -30,8 +32,22 @@ export async function sendPushNotification(userId, payload) {
       return false;
     }
 
-    // Ensure payload is properly formatted
-    const notificationPayload = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    // Ensure payload is properly formatted for the service worker.
+    let formattedPayload = payload;
+    if (typeof payload !== 'string' && payload && typeof payload === 'object') {
+      const url = payload.url || payload?.data?.url || '/';
+      formattedPayload = {
+        title: payload.title || 'WriteAnon',
+        body: payload.body || '',
+        icon: payload.icon || '/icon-192x192.png',
+        badge: payload.badge || '/badge-72x72.png',
+        data: payload.data || { url }
+      };
+    }
+
+    const notificationPayload = typeof formattedPayload === 'string'
+      ? formattedPayload
+      : JSON.stringify(formattedPayload);
     
     try {
       await webpush.sendNotification(user.pushSubscription, notificationPayload);

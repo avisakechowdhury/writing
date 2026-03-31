@@ -17,6 +17,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
+  const [resetUrl, setResetUrl] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +30,8 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     setIsLoading(true);
     
     try {
-      await authAPI.forgotPassword(email);
+      const response = await authAPI.forgotPassword(email);
+      setResetUrl(response.resetUrl || null);
       setIsEmailSent(true);
       toast.success('Password reset email sent!');
     } catch (error: any) {
@@ -45,6 +47,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     if (!isLoading) {
       setEmail('');
       setIsEmailSent(false);
+      setResetUrl(null);
       onClose();
     }
   };
@@ -118,6 +121,19 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
               <p className="text-sm text-neutral-600 mb-4">
                 Didn't receive the email? Check your spam folder or try again.
               </p>
+              {resetUrl && (
+                <div className="mb-4 p-3 border border-warning-200 bg-warning-50 rounded-lg text-left">
+                  <p className="text-xs text-warning-800 mb-2">
+                    Dev fallback link (email service unavailable):
+                  </p>
+                  <a
+                    href={resetUrl}
+                    className="text-xs break-all text-primary-700 underline"
+                  >
+                    {resetUrl}
+                  </a>
+                </div>
+              )}
               <button
                 onClick={() => setIsEmailSent(false)}
                 className="text-primary-600 hover:text-primary-700 font-medium text-sm"

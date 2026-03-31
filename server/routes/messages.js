@@ -3,6 +3,8 @@ import { body, validationResult } from 'express-validator';
 import Message from '../models/Message.js';
 import User from '../models/User.js';
 import { authenticate } from '../middleware/auth.js';
+import { createInAppNotification } from '../services/notificationService.js';
+import { sendPushNotification } from '../services/sendPushNotification.js';
 
 const router = express.Router();
 
@@ -148,6 +150,24 @@ router.post('/send', authenticate, [
     // Populate sender details
     await message.populate('senderId', 'displayName username avatar');
     await message.populate('receiverId', 'displayName username avatar');
+
+    if (receiverId.toString() !== senderId.toString()) {
+      await createInAppNotification({
+        userId: receiverId,
+        actorId: senderId,
+        type: 'message',
+        title: 'New direct message',
+        body: `${req.user.displayName} sent you a message.`,
+        url: `/messages/${senderId}`
+      });
+
+      sendPushNotification(receiverId, {
+        title: 'New message',
+        body: `${req.user.displayName}: ${content.substring(0, 80)}`,
+        icon: '/icon-192x192.png',
+        url: `/messages/${senderId}`
+      });
+    }
 
     // Emit socket event to both users
     const io = req.app.get('io');

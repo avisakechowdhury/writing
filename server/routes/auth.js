@@ -10,8 +10,15 @@ import { validateEmail } from '../utils/emailValidation.js';
 const router = express.Router();
 
 // Generate JWT token
+const getJwtSecret = () => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not set');
+  }
+  return process.env.JWT_SECRET;
+};
+
 const generateToken = (userId) => {
-  const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-for-development';
+  const jwtSecret = getJwtSecret();
   return jwt.sign({ userId }, jwtSecret, {
     expiresIn: process.env.JWT_EXPIRES_IN || '30d' // Extended to 30 days
   });
@@ -21,6 +28,7 @@ const REFRESH_TOKEN_DAYS = parseInt(process.env.REFRESH_TOKEN_DAYS || '90', 10);
 const REFRESH_TOKEN_EXPIRY_MS = REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000;
 
 const hashRefreshToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+const hashResetToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 const pruneExpiredRefreshTokens = (user) => {
   if (!user.refreshTokens) {
@@ -386,16 +394,30 @@ router.post('/forgot-password', [
     const resetToken = user.generatePasswordResetToken();
     await user.save();
 
+    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim();
+    const resetUrl = `${clientUrl}/reset-password?token=${resetToken}`;
+
     // Send password reset email
     const emailSent = await sendPasswordResetEmail(email, resetToken);
     
     if (!emailSent) {
-      return res.status(500).json({ 
-        message: 'Failed to send password reset email. Please try again.' 
+      // In development, return reset URL so local testing can proceed even when SMTP fails.
+      if (process.env.NODE_ENV !== 'production') {
+        return res.json({
+          message: 'Email service is unavailable locally. Use the fallback reset link.',
+          resetUrl
+        });
+      }
+
+      return res.status(500).json({
+        message: 'Failed to send password reset email. Please try again.'
       });
     }
 
-    res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+    res.json({
+      message: 'If an account with that email exists, a password reset link has been sent.',
+      ...(process.env.NODE_ENV !== 'production' ? { resetUrl } : {})
+    });
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -415,9 +437,11 @@ router.post('/reset-password', [
 
     const { token, password } = req.body;
     
+    const hashedToken = hashResetToken(token);
+
     // Find user with valid reset token
     const user = await User.findOne({
-      resetPasswordToken: token,
+      resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: Date.now() }
     });
 

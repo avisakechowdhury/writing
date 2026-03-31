@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import Post from '../models/Post.js';
 import { authenticate } from '../middleware/auth.js';
 import { sendPushNotification } from '../services/sendPushNotification.js';
+import { createInAppNotification } from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -134,6 +135,14 @@ router.post('/:id/follow', authenticate, async (req, res) => {
       // Follow
       currentUser.following.push(targetUserId);
       targetUser.followers.push(currentUserId);
+      await createInAppNotification({
+        userId: targetUserId,
+        actorId: currentUserId,
+        type: 'follow',
+        title: 'You have a new follower',
+        body: `${currentUser.displayName} started following you.`,
+        url: `/profile/${currentUserId}`
+      });
       // Send push notification to followed user
       sendPushNotification(targetUserId, {
         title: 'New follower!',

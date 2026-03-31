@@ -7,33 +7,73 @@ import {
   TrendingUp,
   Settings,
   LogOut,
-  Flame,
   MessageCircle,
   Users,
   Menu,
-  X
+  X,
+  Heart,
+  Bell
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { notificationsAPI } from '../../services/api';
 
 const Navbar: React.FC = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [showMobileMenu, setShowMobileMenu] = React.useState(false);
-
-  if (!user) return null;
+  const [unreadCount, setUnreadCount] = React.useState(0);
 
   const isActive = (path: string) => location.pathname === path;
-  const isFeed = location.pathname === '/';
-
-  const navItems = [
+  const desktopNavItems = [
     { icon: Home, label: 'Feed', path: '/' },
     { icon: PenTool, label: 'Write', path: '/write' },
     { icon: TrendingUp, label: 'Dashboard', path: '/dashboard' },
     { icon: MessageCircle, label: 'Messages', path: '/messages' },
     { icon: Users, label: 'Random Chat', path: '/random-chat' },
+    { icon: Heart, label: 'Connect', path: '/connect' },
   ];
 
-  const streak = typeof user.streak === 'number' ? user.streak : 0;
+  const mobileBottomNavItems = [
+    { icon: Home, label: 'Feed', path: '/' },
+    { icon: PenTool, label: 'Write', path: '/write' },
+    { icon: TrendingUp, label: 'Dashboard', path: '/dashboard' },
+    { icon: MessageCircle, label: 'Messages', path: '/messages' },
+    { icon: Users, label: 'Random Chat', path: '/random-chat' }
+  ];
+
+  React.useEffect(() => {
+    if (!user) return;
+    let mounted = true;
+    const loadUnread = async () => {
+      try {
+        const response = await notificationsAPI.getList(1, 1);
+        if (mounted) {
+          setUnreadCount(response.unreadCount || 0);
+        }
+      } catch {
+        // Ignore polling errors silently in navbar.
+      }
+    };
+
+    void loadUnread();
+    const intervalId = window.setInterval(() => {
+      void loadUnread();
+    }, 30000);
+    const handleUpdated = () => {
+      void loadUnread();
+    };
+    window.addEventListener('notifications:updated', handleUpdated as EventListener);
+    window.addEventListener('focus', handleUpdated);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('notifications:updated', handleUpdated as EventListener);
+      window.removeEventListener('focus', handleUpdated);
+    };
+  }, [user, location.pathname]);
+
+  if (!user) return null;
 
   // Escape to close
   React.useEffect(() => {
@@ -72,7 +112,7 @@ const Navbar: React.FC = () => {
               </Link>
 
               <div className="flex space-x-1">
-                {navItems.map(({ icon: Icon, label, path }) => (
+                {desktopNavItems.map(({ icon: Icon, label, path }) => (
                   <Link
                     key={path}
                     to={path}
@@ -107,13 +147,16 @@ const Navbar: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-accent-100 to-accent-200 rounded-full">
-                <Flame className="w-4 h-4 text-accent-600" />
-                <span className="text-sm font-semibold text-accent-800">{streak} day streak</span>
-              </div>
-
-              {/* Desktop Settings and Logout */}
+              {/* Desktop Notifications, Settings and Logout */}
               <div className="hidden md:flex items-center space-x-2">
+                <Link to="/notifications" className="relative p-2 rounded-lg hover:bg-neutral-100 transition-colors" aria-label="Notifications">
+                  <Bell className="w-5 h-5 text-neutral-600" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-error-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
                 <Link to="/settings" className="p-2 rounded-lg hover:bg-neutral-100 transition-colors" aria-label="Settings">
                   <Settings className="w-5 h-5 text-neutral-600" />
                 </Link>
@@ -134,29 +177,30 @@ const Navbar: React.FC = () => {
       {/* Mobile Top Header (kept small) */}
       <header className="md:hidden fixed top-0 left-0 right-0 bg-white/95 backdrop-blur border-b border-neutral-200 z-50">
         <div className="flex items-center justify-between h-14 px-3">
-          {/* Hide the small logo on Feed (because the Feed page has the large brand) */}
-          {!isFeed ? (
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
-                <PenTool className="w-4 h-4 text-white" />
-              </div>
-              <div className="min-w-0">
-                <span className="font-bold text-sm truncate">WriteAnon</span>
-              </div>
-            </Link>
-          ) : (
-            // keep an invisible placeholder to preserve spacing so menu remains aligned
-            <div className="w-10" />
-          )}
+          <Link to="/" className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
+              <PenTool className="w-4 h-4 text-white" />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-sm truncate">WriteAnon</span>
+            </div>
+          </Link>
 
           <div className="flex items-center space-x-2">
-            {/* show streak compactly if desired; optional on small screens */}
-            <div className="hidden sm:flex items-center space-x-2 px-3 py-1 rounded-full bg-gradient-to-r from-accent-100 to-accent-200">
-              <Flame className="w-4 h-4 text-accent-600" />
-              <span className="text-sm font-semibold text-accent-800">{streak}</span>
-            </div>
+            <Link
+              to="/notifications"
+              className="relative p-2 rounded-lg hover:bg-neutral-100 transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell className="w-5 h-5 text-neutral-600" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-error-500 text-white text-[9px] font-semibold flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
 
-            {/* Always show hamburger (even on Feed) */}
+            {/* Always show hamburger */}
             <button
               onClick={() => setShowMobileMenu((s) => !s)}
               aria-label={showMobileMenu ? 'Close menu' : 'Open menu'}
@@ -196,12 +240,31 @@ const Navbar: React.FC = () => {
             </Link>
 
             <Link
+              to="/notifications"
+              onClick={() => setShowMobileMenu(false)}
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors"
+            >
+              <Bell className="w-5 h-5 text-neutral-600" />
+              <span className="font-medium text-neutral-700">
+                Notifications {unreadCount > 0 ? `(${unreadCount})` : ''}
+              </span>
+            </Link>
+
+            <Link
               to="/settings"
               onClick={() => setShowMobileMenu(false)}
               className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors"
             >
               <Settings className="w-5 h-5 text-neutral-600" />
               <span className="font-medium text-neutral-700">Settings</span>
+            </Link>
+            <Link
+              to="/connect"
+              onClick={() => setShowMobileMenu(false)}
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors"
+            >
+              <Heart className="w-5 h-5 text-neutral-600" />
+              <span className="font-medium text-neutral-700">Connect</span>
             </Link>
 
             <button
@@ -221,7 +284,7 @@ const Navbar: React.FC = () => {
       {/* Mobile Bottom Navigation (Feed, Write, Dashboard, Messages, Random Chat) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-50">
         <div className="flex items-center justify-around h-16 px-2">
-          {navItems.map(({ icon: Icon, label, path }) => (
+          {mobileBottomNavItems.map(({ icon: Icon, label, path }) => (
             <Link
               key={path}
               to={path}

@@ -8,6 +8,7 @@ const createTransporter = () => {
   const emailService = process.env.EMAIL_SERVICE || 'gmail';
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
+  const isProduction = process.env.NODE_ENV === 'production';
 
   // For Gmail, use explicit configuration with proper timeout and connection settings
   if (emailService.toLowerCase() === 'gmail') {
@@ -20,12 +21,9 @@ const createTransporter = () => {
         user: emailUser,
         pass: emailPass
       },
-      // 👇 ADD THIS LINE: Forces Node to use IPv4
-      family: 4, 
-      
-      // 👇 ADD THESE LINES: Enable detailed logging to see exactly what's happening
-      logger: true,
-      debug: true,
+      family: 4,
+      logger: !isProduction,
+      debug: !isProduction,
       tls: {
         // This is necessary for some hosting environments to accept self-signed certs if needed
         rejectUnauthorized: false 

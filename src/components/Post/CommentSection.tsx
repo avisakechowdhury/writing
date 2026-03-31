@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Send, Heart, User, Clock, MessageCircle, Eye, Pencil } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import { Comment } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
@@ -86,7 +87,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               {isPreviewMode ? (
                 <div className="w-full px-3 py-2 border border-neutral-300 rounded-lg min-h-[120px] bg-neutral-50 prose prose-sm max-w-none text-neutral-700">
                   {newComment.trim() ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                       {newComment}
                     </ReactMarkdown>
                   ) : (
@@ -145,7 +146,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                     </div>
                   </div>
                   <div className="prose prose-sm max-w-none text-neutral-700 leading-relaxed">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                       {comment.content}
                     </ReactMarkdown>
                   </div>

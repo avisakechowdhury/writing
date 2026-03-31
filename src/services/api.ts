@@ -166,7 +166,7 @@ export const authAPI = {
   
   forgotPassword: async (email: string) => {
     const response = await api.post('/auth/forgot-password', { email });
-    return response.data;
+    return response.data as { message: string; resetUrl?: string };
   },
   
   resetPassword: async (token: string, password: string) => {
@@ -328,6 +328,21 @@ export const notificationsAPI = {
   
   sendTest: async () => {
     const response = await api.post('/notifications/test');
+    return response.data;
+  },
+
+  getList: async (page: number = 1, limit: number = 20) => {
+    const response = await api.get('/notifications/list', { params: { page, limit } });
+    return response.data;
+  },
+
+  markAsRead: async (notificationId: string) => {
+    const response = await api.put(`/notifications/${notificationId}/read`);
+    return response.data;
+  },
+
+  markAllRead: async () => {
+    const response = await api.put('/notifications/read-all');
     return response.data;
   }
 };
