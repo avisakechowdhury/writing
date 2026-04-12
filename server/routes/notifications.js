@@ -27,14 +27,28 @@ router.post('/subscribe', authenticate, async (req, res) => {
     }
 
     const { subscription } = req.body;
-    
-    if (!subscription) {
+
+    if (!subscription || typeof subscription !== 'object') {
       return res.status(400).json({ message: 'Subscription data required' });
     }
-    
-    // Save subscription to user
+
+    const { endpoint, keys } = subscription;
+    if (!endpoint || typeof endpoint !== 'string') {
+      return res.status(400).json({ message: 'Invalid subscription: missing endpoint' });
+    }
+    if (!keys?.p256dh || !keys?.auth) {
+      return res.status(400).json({ message: 'Invalid subscription: missing encryption keys' });
+    }
+
     await User.findByIdAndUpdate(req.user._id, {
-      pushSubscription: subscription
+      pushSubscription: {
+        endpoint,
+        expirationTime: subscription.expirationTime ?? null,
+        keys: {
+          p256dh: keys.p256dh,
+          auth: keys.auth
+        }
+      }
     });
     
     res.json({ message: 'Subscription saved successfully' });
@@ -66,8 +80,8 @@ router.post('/test', authenticate, async (req, res) => {
     await createInAppNotification({
       userId: user._id,
       type: 'reminder',
-      title: 'Time to Write! ✍️',
-      body: `Keep your ${user.streak}-day streak alive! Share your thoughts with the community.`,
+      title: 'Time to Write',
+      body: `Your words matter. Jot down a few lines today — you've got this.`,
       url: '/write'
     });
     
@@ -87,8 +101,8 @@ router.post('/test', authenticate, async (req, res) => {
     }
 
     const payload = JSON.stringify({
-      title: 'Time to Write! ✍️',
-      body: `Keep your ${user.streak}-day streak alive! Share your thoughts with the community.`,
+      title: 'Time to Write',
+      body: `Your words matter. Open WriteAnon and share a thought today.`,
       icon: '/icon-192x192.png',
       badge: '/badge-72x72.png',
       data: {
@@ -131,7 +145,7 @@ router.put('/read-all', authenticate, async (req, res) => {
 router.get('/list', authenticate, async (req, res) => {
   try {
     const page = parseInt(req.query.page || '1', 10);
-    const limit = parseInt(req.query.limit || '20', 10);
+    const limit = Math.min(parseInt(req.query.limit || '10', 10), 50);
     const skip = (page - 1) * limit;
 
     const [notifications, total, unreadCount] = await Promise.all([

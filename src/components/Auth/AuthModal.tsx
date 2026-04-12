@@ -194,14 +194,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl p-8 w-full max-w-md relative animate-scale-in">
-        <button
-          onClick={handleClose}
-          className="absolute top-4 right-4 p-2 hover:bg-neutral-100 rounded-full transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div
+      className={`auth-modal ${isOpen ? 'block' : 'hidden'} fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/50 px-4 py-6 sm:py-10 sm:items-center`}
+    >
+      <div className="w-full max-w-md my-auto max-h-[calc(100vh-2rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto bg-white rounded-lg shadow-lg p-6 sm:p-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-neutral-900">{mode === 'signup' ? 'Join WriteAnon' : 'Welcome Back'}</h2>
+          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-700">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -213,7 +215,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
           <p className="text-neutral-600">
             {mode === 'login' 
               ? 'Sign in to continue your writing journey' 
-              : 'Start your daily writing practice today'
+              : 'Start your writing practice today'
             }
           </p>
           {mode === 'signup' && (
@@ -313,7 +315,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
                 className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                   errors.password ? 'border-error-300 focus:ring-error-500' : 'border-neutral-300'
                 }`}
-                placeholder="Enter your password (at least 6 characters)"
+                placeholder="Enter your password (min 6 characters)"
                 required
                 minLength={6}
               />

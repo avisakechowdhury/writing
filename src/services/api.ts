@@ -224,6 +224,14 @@ export const postsAPI = {
     const response = await api.post('/posts', postData);
     return response.data;
   },
+
+  updatePost: async (postId: string, postData: { title: string; content: string }) => {
+    if (!postId || !/^[0-9a-fA-F]{24}$/.test(postId)) {
+      throw new Error('Invalid post ID format');
+    }
+    const response = await api.put(`/posts/${postId}`, postData);
+    return response.data;
+  },
   
   likePost: async (postId: string) => {
     // Validate postId format before making request

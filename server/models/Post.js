@@ -50,7 +50,7 @@ const postSchema = new mongoose.Schema({
     content: {
       type: String,
       required: true,
-      maxlength: 1000
+      maxlength: 5000
     },
     likes: {
       type: Number,
@@ -89,6 +89,11 @@ const postSchema = new mongoose.Schema({
   wordCount: {
     type: Number,
     default: 0
+  },
+  /** Set only when author edits title/body (not on likes/comments). */
+  contentEditedAt: {
+    type: Date,
+    default: null
   },
   isPublic: {
     type: Boolean,

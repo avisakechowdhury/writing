@@ -10,7 +10,8 @@ import {
   ChevronUp,
   MessageSquare,
   Flag,
-  MoreHorizontal
+  MoreHorizontal,
+  Pencil
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Post } from '../../types';
@@ -55,6 +56,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment, onLikeComm
 
   const isLiked = user ? post.likedBy.includes(user.id) : false;
   const timeAgo = formatDistanceToNow(post.createdAt, { addSuffix: true });
+  const EDIT_WINDOW_MS = 60 * 60 * 1000;
+  const canEditPost =
+    !!user &&
+    post.authorId === user.id &&
+    Date.now() - new Date(post.createdAt).getTime() <= EDIT_WINDOW_MS;
+
+  const showUpdated = Boolean(post.contentEditedAt);
 
   const handleLike = () => {
     if (!user) {
@@ -106,12 +114,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment, onLikeComm
     return tmp.textContent || tmp.innerText || '';
   };
 
-  const getPreview = (content: string, maxLength: number = 200) => {
-    const text = stripHtml(content);
-    if (text.length <= maxLength) return content;
-    return text.substring(0, maxLength) + '...';
-  };
-
   const shouldShowReadMore = stripHtml(post.content).length > 200;
 
   // Profile link component
@@ -151,11 +153,25 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment, onLikeComm
                   {post.isAnonymous ? 'Anonymous' : post.authorName}
                 </h3>
               </ProfileLink>
-              <div className="flex items-center space-x-2 text-sm text-neutral-500">
-                <Clock className="w-4 h-4" />
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-neutral-500">
+                <Clock className="w-4 h-4 shrink-0" />
                 <span>{timeAgo}</span>
                 <span>•</span>
                 <span>{post.wordCount} words</span>
+                {showUpdated && post.contentEditedAt && (
+                  <>
+                    <span>•</span>
+                    <span className="text-neutral-400">
+                      Updated{' '}
+                      {format(
+                        post.contentEditedAt instanceof Date
+                          ? post.contentEditedAt
+                          : new Date(post.contentEditedAt),
+                        'MMM d, yyyy h:mm a'
+                      )}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -190,6 +206,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment, onLikeComm
               
               {showMoreMenu && (
                 <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-10">
+                  {canEditPost && (
+                    <Link
+                      to={`/write?edit=${post.id}`}
+                      onClick={() => setShowMoreMenu(false)}
+                      className="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 flex items-center space-x-2"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      <span>Edit post</span>
+                    </Link>
+                  )}
                   <button
                     onClick={() => {
                       setShowReportModal(true);
@@ -214,9 +240,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment, onLikeComm
       {/* Content */}
       <div className="px-6 pb-4">
         <div 
-          className="prose prose-sm max-w-none text-neutral-700 leading-relaxed prose-a:text-blue-600 prose-a:underline prose-a:no-underline hover:prose-a:underline"
+          className={`post-html-content prose prose-sm max-w-none text-neutral-700 leading-relaxed prose-a:text-blue-600 prose-a:underline prose-a:no-underline hover:prose-a:underline prose-ul:list-disc prose-ol:list-decimal prose-li:my-0.5 ${
+            !isExpanded && shouldShowReadMore ? 'line-clamp-6' : ''
+          }`}
           dangerouslySetInnerHTML={{ 
-            __html: isExpanded ? post.content : getPreview(post.content) 
+            __html: post.content 
           }}
           onClick={(e) => {
             // Handle external links

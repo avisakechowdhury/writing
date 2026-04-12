@@ -188,7 +188,7 @@ const Settings: React.FC = () => {
               <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg">
                 <div>
                   <h3 className="font-medium text-neutral-900">Push Notifications</h3>
-                  <p className="text-sm text-neutral-600">Receive daily writing reminders</p>
+                  <p className="text-sm text-neutral-600">Gentle &quot;Time to Write&quot; nudges and activity alerts</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input

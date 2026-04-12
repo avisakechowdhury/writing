@@ -7,40 +7,47 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  /** Shorter editor area for comments */
+  compact?: boolean;
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
   placeholder = 'Start writing your thoughts...',
-  className = ''
+  className = '',
+  compact = false
 }) => {
   const quillRef = useRef<ReactQuill>(null);
 
   const modules = {
     toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
+      [{ header: [1, 2, 3, false] }],
       ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '+1' }],
       ['blockquote', 'code-block'],
       ['link'],
       ['clean']
-    ],
+    ]
   };
 
   const formats = [
     'header',
-    'bold', 'italic', 'underline', 'strike',
-    'list', 'bullet',
-    'blockquote', 'code-block',
+    'bold',
+    'italic',
+    'underline',
+    'strike',
+    'list',
+    'bullet',
+    'indent',
+    'blockquote',
+    'code-block',
     'link'
   ];
 
   useEffect(() => {
-    // Auto-save functionality can be added here
     const timer = setTimeout(() => {
       if (value) {
-        // Save to localStorage or send to server
         localStorage.setItem('draft_content', value);
       }
     }, 1000);
@@ -59,12 +66,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         formats={formats}
         placeholder={placeholder}
         style={{
-          height: '400px',
-          marginBottom: '50px'
+          height: compact ? '160px' : '400px',
+          marginBottom: compact ? '12px' : '50px'
         }}
       />
-      <style dangerouslySetInnerHTML={{
-        __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
           .ql-toolbar {
             border: 1px solid #e5e7eb !important;
             border-radius: 8px 8px 0 0 !important;
@@ -80,7 +88,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           .ql-editor {
             font-size: 16px !important;
             line-height: 1.6 !important;
-            min-height: 400px !important;
+            min-height: ${compact ? '140px' : '400px'} !important;
           }
           
           .ql-editor.ql-blank::before {
@@ -116,7 +124,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             color: #1d4ed8 !important;
           }
         `
-      }} />
+        }}
+      />
     </div>
   );
 };

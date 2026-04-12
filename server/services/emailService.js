@@ -25,8 +25,7 @@ const createTransporter = () => {
       logger: !isProduction,
       debug: !isProduction,
       tls: {
-        // This is necessary for some hosting environments to accept self-signed certs if needed
-        rejectUnauthorized: false 
+        rejectUnauthorized: isProduction
       },
       connectionTimeout: 20000, // 20 seconds
       greetingTimeout: 20000, // 20 seconds
@@ -48,7 +47,7 @@ const createTransporter = () => {
       pass: emailPass
     },
     tls: {
-      rejectUnauthorized: false
+      rejectUnauthorized: isProduction
     },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
@@ -150,6 +149,17 @@ export const sendEmailVerificationOTP = async (email, otp) => {
 export const sendPasswordResetEmail = async (email, resetToken) => {
   try {
     const transporter = createTransporter();
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    if (!isProduction) {
+      try {
+        await transporter.verify();
+      } catch (verifyErr) {
+        console.error('Password reset: SMTP verify failed:', verifyErr.message);
+        return false;
+      }
+    }
+
     // Ensure we handle multiple URLs if comma separated, taking the first one
     const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim();
     const resetUrl = `${clientUrl}/reset-password?token=${resetToken}`;
@@ -201,7 +211,7 @@ export const sendPasswordResetEmail = async (email, resetToken) => {
     console.log(`Password reset email sent to ${email}`);
     return true;
   } catch (error) {
-    console.error('Error sending password reset email:', error);
+    console.error('Error sending password reset email:', error?.message || error, error?.code || '');
     return false;
   }
 };

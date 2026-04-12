@@ -1,4 +1,5 @@
 // Utility functions for validation
+import sanitizeHtml from 'sanitize-html';
 
 /**
  * Validates if a string is a valid MongoDB ObjectId
@@ -69,19 +70,54 @@ export const sanitizeMongoInput = (input) => {
   return input;
 };
 
+const QUILL_ALLOWED_CLASSES = {
+  p: [/^ql-indent-[1-9]$/, /^ql-align-(right|center|justify)$/],
+  li: [/^ql-indent-[1-9]$/],
+  ol: [/^ql-indent-[1-9]$/],
+  ul: [/^ql-indent-[1-9]$/],
+  span: [/^ql-ui$/]
+};
+
 /**
- * Sanitizes HTML content to prevent XSS
+ * Sanitizes HTML (e.g. Quill output) for safe storage and rendering.
  * @param {string} html - The HTML string to sanitize
  * @returns {string} - The sanitized HTML
  */
 export const sanitizeHTML = (html) => {
   if (!html || typeof html !== 'string') return '';
-  // Basic XSS prevention - remove script tags and event handlers
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-    .replace(/javascript:/gi, '')
-    .trim();
+  return sanitizeHtml(html, {
+    allowedTags: [
+      'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'ol', 'ul', 'li', 'blockquote', 'pre', 'code', 'a', 'span'
+    ],
+    allowedAttributes: {
+      a: ['href', 'target', 'rel'],
+      span: ['class'],
+      p: ['class'],
+      li: ['class'],
+      ol: ['class'],
+      ul: ['class']
+    },
+    allowedClasses: QUILL_ALLOWED_CLASSES,
+    allowedSchemes: ['http', 'https', 'mailto'],
+    transformTags: {
+      a: (tagName, attribs) => {
+        const href = attribs.href || '';
+        if (!href || !/^(https?:|mailto:)/i.test(href)) {
+          return { tagName: 'span', text: attribs.text || '', attribs: {} };
+        }
+        return {
+          tagName: 'a',
+          attribs: {
+            href,
+            target: '_blank',
+            rel: 'noopener noreferrer'
+          }
+        };
+      }
+    }
+  }).trim();
 };
 
 /**

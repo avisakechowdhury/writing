@@ -75,6 +75,8 @@ export interface Post {
   isAnonymous: boolean;
   createdAt: Date;
   updatedAt: Date;
+  /** Present only after the author edited title/body within the edit window */
+  contentEditedAt?: Date | null;
   likes: number;
   likedBy: string[];
   comments: Comment[];

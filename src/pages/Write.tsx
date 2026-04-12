@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Save, Eye, EyeOff, Sparkles, Clock } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Save, Eye, EyeOff, Clock } from 'lucide-react';
 import RichTextEditor from '../components/Editor/RichTextEditor';
 import { useAuth } from '../contexts/AuthContext';
 import { usePosts } from '../hooks/usePosts';
+import { postsAPI } from '../services/api';
 import toast from 'react-hot-toast';
+
+const EDIT_WINDOW_MS = 60 * 60 * 1000;
+
+const plainFromHtml = (html: string) =>
+  html.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim();
 
 const Write: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, updateUser } = useAuth();
-  const { createPost } = usePosts();
+  const { createPost, updatePost } = usePosts();
   
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -19,6 +26,10 @@ const Write: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [loadingEditPost, setLoadingEditPost] = useState(false);
+
+  const editParam = searchParams.get('edit');
 
   const moods = [
     { value: 'happy', label: 'Happy', emoji: '😊' },
@@ -31,8 +42,67 @@ const Write: React.FC = () => {
     { value: 'frustrated', label: 'Frustrated', emoji: '😤' },
   ];
 
-  // Auto-save draft
+  // Load post for ?edit=
   useEffect(() => {
+    if (!editParam || !user) {
+      setEditingPostId(null);
+      return;
+    }
+
+    if (!/^[0-9a-fA-F]{24}$/.test(editParam)) {
+      toast.error('Invalid post');
+      setSearchParams({});
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      setLoadingEditPost(true);
+      try {
+        const { post } = await postsAPI.getPost(editParam);
+        if (cancelled) return;
+
+        const authorId = String(post.authorId);
+
+        if (authorId !== user.id) {
+          toast.error('You can only edit your own posts');
+          setSearchParams({});
+          return;
+        }
+
+        const created = new Date(post.createdAt).getTime();
+        if (Date.now() - created > EDIT_WINDOW_MS) {
+          toast.error('Editing is only available for one hour after posting');
+          setSearchParams({});
+          return;
+        }
+
+        setEditingPostId(editParam);
+        setTitle(post.title);
+        setContent(post.content);
+        setIsAnonymous(post.isAnonymous);
+        setMood(post.mood || '');
+        setTags((post.tags || []).join(', '));
+      } catch {
+        if (!cancelled) {
+          toast.error('Could not load post for editing');
+          setSearchParams({});
+        }
+      } finally {
+        if (!cancelled) setLoadingEditPost(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editParam, user, setSearchParams]);
+
+  // Auto-save draft (skip while editing an existing post)
+  useEffect(() => {
+    if (editingPostId) return;
+
     const draft = {
       title,
       content,
@@ -40,15 +110,17 @@ const Write: React.FC = () => {
       mood,
       tags
     };
-    
+
     if (title || content) {
       localStorage.setItem('current_draft', JSON.stringify(draft));
       setLastSaved(new Date());
     }
-  }, [title, content, isAnonymous, mood, tags]);
+  }, [title, content, isAnonymous, mood, tags, editingPostId]);
 
-  // Load draft on mount
+  // Load draft on mount when not editing
   useEffect(() => {
+    if (searchParams.get('edit')) return;
+
     const savedDraft = localStorage.getItem('current_draft');
     if (savedDraft) {
       try {
@@ -62,7 +134,7 @@ const Write: React.FC = () => {
         console.error('Error loading draft:', error);
       }
     }
-  }, []);
+  }, [searchParams]);
 
   // Update word count
   useEffect(() => {
@@ -73,13 +145,25 @@ const Write: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim() || !user) {
+    if (!title.trim() || !plainFromHtml(content) || !user) {
       toast.error('Please fill in both title and content');
       return;
     }
 
     setIsSubmitting(true);
     try {
+      if (editingPostId) {
+        await updatePost(editingPostId, {
+          title: title.trim(),
+          content: content.trim()
+        });
+        localStorage.removeItem('current_draft');
+        setSearchParams({});
+        setEditingPostId(null);
+        navigate(`/post/${editingPostId}`);
+        return;
+      }
+
       const postData: any = {
         title: title.trim(),
         content: content.trim(),
@@ -87,25 +171,21 @@ const Write: React.FC = () => {
         tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
       };
 
-      // Only add mood if it's provided and not empty
       if (mood && mood.trim() !== '') {
         postData.mood = mood;
       }
 
-      console.log('Submitting post data:', postData);
-
       await createPost(postData);
 
-      // Update user stats
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const lastWrite = user.lastWriteDate ? new Date(user.lastWriteDate) : null;
-      
+
       if (!lastWrite || lastWrite < today) {
         const newStreak = user.streak + 1;
         const newPoints = user.points + 10;
         const newLevel = Math.floor(newPoints / 100) + 1;
-        
+
         updateUser({
           streak: newStreak,
           points: newPoints,
@@ -115,14 +195,13 @@ const Write: React.FC = () => {
         });
       }
 
-      // Clear draft
       localStorage.removeItem('current_draft');
-      
-      toast.success('Post published successfully!');
       navigate('/');
     } catch (error: any) {
-      console.error('Post creation error:', error);
-      const message = error.response?.data?.message || 'Failed to publish post. Please try again.';
+      console.error('Post save error:', error);
+      const message =
+        error.response?.data?.message ||
+        (editingPostId ? 'Failed to update post. Please try again.' : 'Failed to publish post. Please try again.');
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -130,6 +209,10 @@ const Write: React.FC = () => {
   };
 
   const clearDraft = () => {
+    if (editingPostId) {
+      toast.error('Use Cancel to leave the editor without saving');
+      return;
+    }
     setTitle('');
     setContent('');
     setIsAnonymous(false);
@@ -156,6 +239,14 @@ const Write: React.FC = () => {
     );
   }
 
+  if (loadingEditPost) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center text-neutral-600">
+        Loading post…
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="bg-white rounded-2xl shadow-soft border border-neutral-200 overflow-hidden">
@@ -163,8 +254,14 @@ const Write: React.FC = () => {
         <div className="p-6 border-b border-neutral-200 bg-gradient-to-r from-primary-50 to-secondary-50">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-neutral-900 mb-2">Write Your Story</h1>
-              <p className="text-neutral-600">Share your thoughts with the world</p>
+              <h1 className="text-2xl font-bold text-neutral-900 mb-2">
+                {editingPostId ? 'Edit your post' : 'Write Your Story'}
+              </h1>
+              <p className="text-neutral-600">
+                {editingPostId
+                  ? 'You can update the title and content for up to one hour after posting.'
+                  : 'Share your thoughts with the world'}
+              </p>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 text-sm text-neutral-500">
@@ -218,7 +315,8 @@ const Write: React.FC = () => {
               <select
                 value={mood}
                 onChange={(e) => setMood(e.target.value)}
-                className="w-full px-4 py-3 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                disabled={!!editingPostId}
+                className="w-full px-4 py-3 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 disabled:cursor-not-allowed"
               >
                 <option value="">Select your mood (optional)</option>
                 {moods.map(m => (
@@ -238,20 +336,22 @@ const Write: React.FC = () => {
                 type="text"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
+                disabled={!!editingPostId}
                 placeholder="writing, motivation, life (comma-separated)"
-                className="w-full px-4 py-3 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 disabled:cursor-not-allowed"
               />
             </div>
           </div>
 
           {/* Privacy */}
           <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-xl">
-            <label className="flex items-center space-x-3 cursor-pointer">
+            <label className={`flex items-center space-x-3 ${editingPostId ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}>
               <input
                 type="checkbox"
                 checked={isAnonymous}
                 onChange={(e) => setIsAnonymous(e.target.checked)}
-                className="w-5 h-5 text-primary-600 border-neutral-300 rounded focus:ring-primary-500"
+                disabled={!!editingPostId}
+                className="w-5 h-5 text-primary-600 border-neutral-300 rounded focus:ring-primary-500 disabled:cursor-not-allowed"
               />
               <div className="flex items-center space-x-2">
                 {isAnonymous ? (
@@ -274,7 +374,8 @@ const Write: React.FC = () => {
             <button
               type="button"
               onClick={clearDraft}
-              className="px-6 py-3 border border-neutral-300 text-neutral-700 font-medium rounded-xl hover:bg-neutral-50 transition-colors"
+              disabled={!!editingPostId}
+              className="px-6 py-3 border border-neutral-300 text-neutral-700 font-medium rounded-xl hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Clear Draft
             </button>
@@ -289,18 +390,18 @@ const Write: React.FC = () => {
               </button>
               <button
                 type="submit"
-                disabled={!title.trim() || !content.trim() || isSubmitting}
+                disabled={!title.trim() || !plainFromHtml(content) || isSubmitting}
                 className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold rounded-xl hover:from-primary-600 hover:to-secondary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
                 {isSubmitting ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Publishing...</span>
+                    <span>{editingPostId ? 'Saving…' : 'Publishing...'}</span>
                   </>
                 ) : (
                   <>
                     <Save className="w-5 h-5" />
-                    <span>Publish Post</span>
+                    <span>{editingPostId ? 'Save changes' : 'Publish Post'}</span>
                   </>
                 )}
               </button>

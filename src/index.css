@@ -48,4 +48,60 @@
     target: _blank;
     rel: noopener noreferrer;
   }
+
+  /* Quill indent classes in rendered HTML (posts/comments) */
+  .post-html-content .ql-indent-1:not(.ql-direction-rtl) {
+    padding-left: 3em;
+  }
+  .post-html-content .ql-indent-2:not(.ql-direction-rtl) {
+    padding-left: 6em;
+  }
+  .post-html-content .ql-indent-3:not(.ql-direction-rtl) {
+    padding-left: 9em;
+  }
+  .post-html-content .ql-indent-4:not(.ql-direction-rtl) {
+    padding-left: 12em;
+  }
+  .post-html-content .ql-indent-5:not(.ql-direction-rtl) {
+    padding-left: 15em;
+  }
+  .post-html-content .ql-indent-6:not(.ql-direction-rtl) {
+    padding-left: 18em;
+  }
+  .post-html-content .ql-indent-7:not(.ql-direction-rtl) {
+    padding-left: 21em;
+  }
+  .post-html-content .ql-indent-8:not(.ql-direction-rtl) {
+    padding-left: 24em;
+  }
+  .post-html-content .ql-indent-9:not(.ql-direction-rtl) {
+    padding-left: 27em;
+  }
+  .post-html-content li.ql-indent-1:not(.ql-direction-rtl) {
+    padding-left: 3em;
+  }
+  .post-html-content li.ql-indent-2:not(.ql-direction-rtl) {
+    padding-left: 6em;
+  }
+  .post-html-content li.ql-indent-3:not(.ql-direction-rtl) {
+    padding-left: 9em;
+  }
+  .post-html-content li.ql-indent-4:not(.ql-direction-rtl) {
+    padding-left: 12em;
+  }
+  .post-html-content li.ql-indent-5:not(.ql-direction-rtl) {
+    padding-left: 15em;
+  }
+  .post-html-content li.ql-indent-6:not(.ql-direction-rtl) {
+    padding-left: 18em;
+  }
+  .post-html-content li.ql-indent-7:not(.ql-direction-rtl) {
+    padding-left: 21em;
+  }
+  .post-html-content li.ql-indent-8:not(.ql-direction-rtl) {
+    padding-left: 24em;
+  }
+  .post-html-content li.ql-indent-9:not(.ql-direction-rtl) {
+    padding-left: 27em;
+  }
 }

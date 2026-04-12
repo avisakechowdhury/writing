@@ -33,7 +33,11 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
       const response = await authAPI.forgotPassword(email);
       setResetUrl(response.resetUrl || null);
       setIsEmailSent(true);
-      toast.success('Password reset email sent!');
+      if (response?.message) {
+        toast.success(response.message);
+      } else {
+        toast.success('If your email is registered, check your inbox for a reset link.');
+      }
     } catch (error: any) {
       console.error('Forgot password error:', error);
       const message = error.response?.data?.message || 'Failed to send reset email. Please try again.';

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Post, Comment } from '../types';
 import { postsAPI } from '../services/api';
 import toast from 'react-hot-toast';
@@ -9,6 +9,7 @@ export const usePosts = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
+  const likeCooldownRef = useRef<Map<string, number>>(new Map());
 
   const loadPosts = async (pageNum: number = 1, filters?: any) => {
     try {
@@ -28,6 +29,7 @@ export const usePosts = () => {
         ...post,
         createdAt: new Date(post.createdAt),
         updatedAt: new Date(post.updatedAt),
+        contentEditedAt: post.contentEditedAt ? new Date(post.contentEditedAt) : null,
         comments: post.comments.map((comment: any) => ({
           ...comment,
           createdAt: new Date(comment.createdAt)
@@ -63,6 +65,9 @@ export const usePosts = () => {
         ...response.post,
         createdAt: new Date(response.post.createdAt),
         updatedAt: new Date(response.post.updatedAt),
+        contentEditedAt: response.post.contentEditedAt
+          ? new Date(response.post.contentEditedAt)
+          : null,
         comments: []
       };
       
@@ -78,6 +83,13 @@ export const usePosts = () => {
   };
 
   const likePost = async (postId: string, userId: string) => {
+    const now = Date.now();
+    const last = likeCooldownRef.current.get(postId) || 0;
+    if (now - last < 450) {
+      return;
+    }
+    likeCooldownRef.current.set(postId, now);
+
     try {
       // Optimistic update
       setPosts(prev => 
@@ -116,6 +128,35 @@ export const usePosts = () => {
       );
       
       toast.error('Failed to update like');
+    }
+  };
+
+  const updatePost = async (postId: string, data: { title: string; content: string }) => {
+    try {
+      const response = await postsAPI.updatePost(postId, data);
+      const updated = {
+        ...response.post,
+        createdAt: new Date(response.post.createdAt),
+        updatedAt: new Date(response.post.updatedAt),
+        contentEditedAt: response.post.contentEditedAt
+          ? new Date(response.post.contentEditedAt)
+          : null,
+        comments: (response.post.comments || []).map((comment: any) => ({
+          ...comment,
+          createdAt: new Date(comment.createdAt)
+        }))
+      };
+
+      setPosts((prev) =>
+        prev.map((post) => (post.id === postId ? { ...post, ...updated } : post))
+      );
+
+      toast.success('Post updated successfully!');
+      return updated;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to update post';
+      toast.error(message);
+      throw error;
     }
   };
 
@@ -213,6 +254,7 @@ export const usePosts = () => {
     isLoadingMore,
     hasMore,
     createPost,
+    updatePost,
     likePost,
     addComment,
     likeComment,

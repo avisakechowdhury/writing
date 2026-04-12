@@ -14,7 +14,7 @@ const Notifications: React.FC = () => {
 
   const loadNotifications = async () => {
     try {
-      const response = await notificationsAPI.getList(1, 50);
+      const response = await notificationsAPI.getList(1, 10);
       setNotifications(response.notifications || []);
       setUnreadCount(response.unreadCount || 0);
     } catch {
@@ -43,8 +43,12 @@ const Notifications: React.FC = () => {
   const handleMarkRead = async (notificationId: string) => {
     try {
       await notificationsAPI.markAsRead(notificationId);
-      setNotifications(prev => prev.filter(item => item._id !== notificationId));
-      setUnreadCount(prev => Math.max(prev - 1, 0));
+      setNotifications(prev =>
+        prev.map((item) =>
+          item._id === notificationId ? { ...item, isRead: true } : item
+        )
+      );
+      setUnreadCount((prev) => Math.max(prev - 1, 0));
       window.dispatchEvent(new CustomEvent('notifications:updated'));
     } catch {
       toast.error('Failed to update notification');
@@ -54,7 +58,7 @@ const Notifications: React.FC = () => {
   const handleMarkAllRead = async () => {
     try {
       await notificationsAPI.markAllRead();
-      setNotifications([]);
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
       window.dispatchEvent(new CustomEvent('notifications:updated'));
       toast.success('All notifications marked as read');

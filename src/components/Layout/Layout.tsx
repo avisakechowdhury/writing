@@ -3,11 +3,20 @@ import { Outlet, Navigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import AuthModal from '../Auth/AuthModal';
 import { useAuth } from '../../contexts/AuthContext';
+import { syncPushSubscriptionToServer } from '../../utils/pushSubscription';
 
 const Layout: React.FC = () => {
   const { user, isLoading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const timer = window.setTimeout(() => {
+      void syncPushSubscriptionToServer().catch(() => {});
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [user?.id]);
 
   // Handle global auth modal function
   useEffect(() => {

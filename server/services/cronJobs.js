@@ -74,14 +74,14 @@ export const setupCronJobs = () => {
           await createInAppNotification({
             userId: user._id,
             type: 'reminder',
-            title: 'Daily writing reminder',
-            body: `Keep your ${user.streak}-day streak alive. Write a quick post today.`,
+            title: 'Time to Write',
+            body: `Your words matter. Jot down a few lines today — you've got this.`,
             url: '/write'
           });
 
           await sendPushNotification(user._id, {
-            title: 'Time to Write! ✍️',
-            body: `Keep your ${user.streak}-day streak alive! Share your thoughts with the community.`,
+            title: 'Time to Write',
+            body: `Your words matter. Open WriteAnon and share a thought today.`,
             icon: '/icon-192x192.png',
             badge: '/badge-72x72.png',
             data: {

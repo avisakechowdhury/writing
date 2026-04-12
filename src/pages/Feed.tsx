@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Search, Filter, Plus, PenTool, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PostCard from '../components/Post/PostCard';
+import PushPromptBanner from '../components/PushPromptBanner';
 import { usePosts } from '../hooks/usePosts';
 import { useAuth } from '../contexts/AuthContext';
 import { showAuthRequiredToastSimple, redirectToLanding } from '../utils/toastUtils';
@@ -83,6 +84,7 @@ const Feed: React.FC = () => {
         <meta name="keywords" content="mental health stories, anonymous posts, emotional wellness, anxiety stories, depression support, mental health community, anonymous writing, personal journeys, emotional expression" />
         <link rel="canonical" href="https://writeanon.in/" />
       </Helmet>
+      <PushPromptBanner />
       {/* Header */}
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">

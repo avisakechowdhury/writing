@@ -69,6 +69,7 @@ router.get('/', async (req, res) => {
       isAnonymous: post.isAnonymous,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
+      contentEditedAt: post.contentEditedAt || null,
       likes: post.likes,
       likedBy: post.likedBy.map(id => id.toString()),
       comments: post.comments.map(comment => ({
@@ -144,6 +145,7 @@ router.get('/:id', async (req, res) => {
       isAnonymous: post.isAnonymous,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
+      contentEditedAt: post.contentEditedAt || null,
       likes: post.likes,
       likedBy: post.likedBy.map(id => id.toString()),
       comments: post.comments.map(comment => ({
@@ -173,6 +175,93 @@ router.get('/:id', async (req, res) => {
     });
   }
 });
+
+const POST_EDIT_WINDOW_MS = 60 * 60 * 1000;
+
+// Update post (author only, within 1 hour of original publish time)
+router.put('/:id', authenticate, [
+  body('title').isLength({ min: 1, max: 200 }).trim(),
+  body('content').isLength({ min: 1, max: 10000 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid post ID format' });
+    }
+
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    if (post.authorId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'You can only edit your own posts' });
+    }
+
+    if (post.isDraft) {
+      return res.status(400).json({ message: 'Draft posts cannot be updated through this action' });
+    }
+
+    const created = new Date(post.createdAt).getTime();
+    if (Date.now() - created > POST_EDIT_WINDOW_MS) {
+      return res.status(403).json({
+        message: 'Editing is only allowed within one hour of posting'
+      });
+    }
+
+    const safeContent = sanitizeHTML(req.body.content);
+    post.title = req.body.title.trim();
+    post.content = safeContent;
+    post.contentEditedAt = new Date();
+    await post.save();
+
+    const populated = await Post.findById(post._id)
+      .populate('authorId', 'displayName username')
+      .lean();
+
+    const transformedPost = {
+      id: populated._id,
+      title: populated.title,
+      content: populated.content,
+      authorId: populated.authorId?._id || populated.authorId,
+      authorName: populated.isAnonymous ? 'Anonymous' : (populated.authorId?.displayName || populated.authorName),
+      isAnonymous: populated.isAnonymous,
+      createdAt: populated.createdAt,
+      updatedAt: populated.updatedAt,
+      contentEditedAt: populated.contentEditedAt || null,
+      likes: populated.likes,
+      likedBy: populated.likedBy.map((uid) => uid.toString()),
+      comments: populated.comments.map((comment) => ({
+        id: comment.id,
+        postId: populated._id,
+        authorId: comment.authorId,
+        authorName: comment.authorName,
+        content: comment.content,
+        createdAt: comment.createdAt,
+        likes: comment.likes,
+        likedBy: comment.likedBy.map((uid) => uid.toString()),
+        reactions: comment.reactions
+      })),
+      tags: populated.tags,
+      mood: populated.mood,
+      wordCount: populated.wordCount
+    };
+
+    res.json({
+      message: 'Post updated successfully',
+      post: transformedPost
+    });
+  } catch (error) {
+    console.error('Update post error:', error);
+    res.status(500).json({ message: 'Server error while updating post' });
+  }
+});
+
 // Create new post
 router.post('/', authenticate, [
   body('title').isLength({ min: 1, max: 200 }).trim(),
@@ -248,6 +337,7 @@ router.post('/', authenticate, [
       isAnonymous: post.isAnonymous,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
+      contentEditedAt: post.contentEditedAt || null,
       likes: post.likes,
       likedBy: [],
       comments: [],
@@ -326,7 +416,7 @@ router.post('/:id/like', authenticate, async (req, res) => {
 
 // Add comment to post
 router.post('/:id/comments', authenticate, [
-  body('content').isLength({ min: 1, max: 1000 }).trim()
+  body('content').isLength({ min: 1, max: 5000 }).trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -346,10 +436,13 @@ router.post('/:id/comments', authenticate, [
       return res.status(404).json({ message: 'Post not found' });
     }
 
+    const safeComment = sanitizeHTML(req.body.content);
+    const plainForPush = safeComment.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140);
+
     const comment = {
       authorId: req.user._id,
       authorName: req.user.displayName,
-      content: sanitizeHTML(req.body.content),
+      content: safeComment,
       likes: 0,
       likedBy: [],
       reactions: []
@@ -373,7 +466,7 @@ router.post('/:id/comments', authenticate, [
       });
       sendPushNotification(post.authorId, {
         title: 'New comment on your post!',
-        body: `${req.user.displayName} commented: ${req.body.content}`,
+        body: `${req.user.displayName} commented: ${plainForPush || 'New comment'}`,
         icon: '/icon-192x192.png',
         url: `/post/${post._id}`
       });
@@ -467,6 +560,7 @@ router.get('/my-posts', authenticate, async (req, res) => {
       isAnonymous: post.isAnonymous,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
+      contentEditedAt: post.contentEditedAt || null,
       likes: post.likes,
       likedBy: post.likedBy.map(id => id.toString()),
       comments: post.comments.map(comment => ({

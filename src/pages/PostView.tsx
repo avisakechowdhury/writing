@@ -46,6 +46,9 @@ const PostView: React.FC = () => {
         ...response.post,
         createdAt: new Date(response.post.createdAt),
         updatedAt: new Date(response.post.updatedAt),
+        contentEditedAt: response.post.contentEditedAt
+          ? new Date(response.post.contentEditedAt)
+          : null,
         comments: response.post.comments.map((comment: any) => ({
           ...comment,
           createdAt: new Date(comment.createdAt)
