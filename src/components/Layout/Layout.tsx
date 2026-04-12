@@ -4,6 +4,7 @@ import Navbar from './Navbar';
 import AuthModal from '../Auth/AuthModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { syncPushSubscriptionToServer } from '../../utils/pushSubscription';
+import { isWebPushClientConfigured } from '../../config/push';
 
 const Layout: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -11,7 +12,7 @@ const Layout: React.FC = () => {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !isWebPushClientConfigured()) return;
     const timer = window.setTimeout(() => {
       void syncPushSubscriptionToServer().catch(() => {});
     }, 2000);

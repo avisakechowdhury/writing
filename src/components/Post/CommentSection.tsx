@@ -92,8 +92,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   return (
     <div className="border-t border-neutral-200 bg-white">
       {user && (
-        <form onSubmit={handleSubmit} className="p-4 border-b border-neutral-100">
-          <div className="flex space-x-3">
+        <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-b border-neutral-100">
+          <div className="flex gap-3">
             <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center flex-shrink-0">
               <User className="w-4 h-4 text-white" />
             </div>
@@ -120,7 +120,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 </div>
               </div>
               {isPreviewMode ? (
-                <div className="w-full px-3 py-2 border border-neutral-300 rounded-lg min-h-[120px] bg-neutral-50 prose prose-sm max-w-none text-neutral-700">
+                <div className="w-full px-3 py-3 border border-neutral-300 rounded-lg min-h-[11rem] sm:min-h-[7.5rem] bg-neutral-50 prose prose-sm max-w-none text-neutral-700">
                   {newComment.trim() ? (
                     <CommentBody content={newComment.trim()} />
                   ) : (
@@ -132,8 +132,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Add a thoughtful comment..."
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  rows={4}
+                  className="w-full px-3 py-3 border border-neutral-300 rounded-lg resize-y min-h-[11rem] sm:min-h-[7.5rem] text-base sm:text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  rows={6}
                 />
               )}
               <div className="flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-3 mt-3">

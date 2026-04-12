@@ -26,6 +26,7 @@ const Settings: React.FC = () => {
     isSupported, 
     permission, 
     isSubscribed, 
+    isWebPushConfigured,
     requestPermission, 
     subscribe, 
     unsubscribe,
@@ -84,14 +85,14 @@ const Settings: React.FC = () => {
 
   const handleNotificationToggle = async (enabled: boolean) => {
     setSettings(prev => ({ ...prev, notifications: enabled }));
-    
+
     if (enabled && isSupported) {
       if (permission !== 'granted') {
         const granted = await requestPermission();
-        if (granted) {
+        if (granted && isWebPushConfigured) {
           await subscribe();
         }
-      } else if (!isSubscribed) {
+      } else if (!isSubscribed && isWebPushConfigured) {
         await subscribe();
       }
     } else if (!enabled && isSubscribed) {
@@ -185,6 +186,16 @@ const Settings: React.FC = () => {
             </div>
             
             <div className="space-y-6">
+              {!isWebPushConfigured && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <p className="font-medium">Browser push is not active on this deployment</p>
+                  <p className="mt-1 text-amber-800/90">
+                    Add <code className="rounded bg-amber-100/80 px-1 py-0.5 text-xs">VITE_VAPID_PUBLIC_KEY</code> to your
+                    hosting build settings (same value as server <code className="text-xs">VAPID_PUBLIC_KEY</code>), then
+                    redeploy the frontend. In-app notifications still work without it.
+                  </p>
+                </div>
+              )}
               <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg">
                 <div>
                   <h3 className="font-medium text-neutral-900">Push Notifications</h3>

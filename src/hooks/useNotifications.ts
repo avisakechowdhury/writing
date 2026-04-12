@@ -3,6 +3,12 @@ import { notificationsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { syncPushSubscriptionToServer } from '../utils/pushSubscription';
+import { isWebPushClientConfigured } from '../config/push';
+
+type SubscribeOptions = {
+  /** If true, do not show error/success toasts (caller handles messaging). */
+  quiet?: boolean;
+};
 
 export const useNotifications = () => {
   const { user } = useAuth();
@@ -11,28 +17,32 @@ export const useNotifications = () => {
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
-    // Check if notifications are supported
     setIsSupported('Notification' in window && 'serviceWorker' in navigator);
     setPermission(Notification.permission);
   }, []);
 
-  const requestPermission = async () => {
+  const requestPermission = async (options?: { quiet?: boolean }) => {
+    const { quiet = false } = options || {};
+
     if (!isSupported) {
       toast.error('Notifications are not supported in this browser');
       return false;
     }
 
     try {
-      const permission = await Notification.requestPermission();
-      setPermission(permission);
-      
-      if (permission === 'granted') {
-        toast.success('Notifications enabled!');
+      const next = await Notification.requestPermission();
+      setPermission(next);
+
+      if (next === 'granted') {
+        if (!quiet) {
+          toast.success('Notifications enabled!');
+        }
         return true;
-      } else {
-        toast.error('Notification permission denied');
-        return false;
       }
+      if (!quiet) {
+        toast.error('Notification permission denied');
+      }
+      return false;
     } catch (error) {
       console.error('Error requesting notification permission:', error);
       toast.error('Failed to request notification permission');
@@ -40,30 +50,42 @@ export const useNotifications = () => {
     }
   };
 
-  const subscribe = async () => {
+  const subscribe = async (options: SubscribeOptions = {}): Promise<boolean> => {
+    const { quiet = false } = options;
+
     if (!user || !isSupported || permission !== 'granted') {
       return false;
     }
 
-    try {
-      if (!import.meta.env.VITE_VAPID_PUBLIC_KEY) {
-        toast.error('Push notifications are not configured for this environment');
-        return false;
+    if (!isWebPushClientConfigured()) {
+      if (!quiet) {
+        toast.error(
+          'Browser push is not configured in this build. Add VITE_VAPID_PUBLIC_KEY to your hosting environment (same value as VAPID_PUBLIC_KEY on the server), then redeploy the site.'
+        );
       }
+      return false;
+    }
 
+    try {
       const ok = await syncPushSubscriptionToServer();
       if (!ok) {
-        toast.error('Failed to subscribe to notifications');
+        if (!quiet) {
+          toast.error('Failed to subscribe to notifications. Try again or check your connection.');
+        }
         return false;
       }
 
       setIsSubscribed(true);
-      toast.success('Successfully subscribed to notifications!');
+      if (!quiet) {
+        toast.success('Successfully subscribed to notifications!');
+      }
 
       return true;
     } catch (error) {
       console.error('Error subscribing to notifications:', error);
-      toast.error('Failed to subscribe to notifications');
+      if (!quiet) {
+        toast.error('Failed to subscribe to notifications');
+      }
       return false;
     }
   };
@@ -73,7 +95,7 @@ export const useNotifications = () => {
       await notificationsAPI.unsubscribe();
       setIsSubscribed(false);
       toast.success('Unsubscribed from notifications');
-      
+
       return true;
     } catch (error) {
       console.error('Error unsubscribing from notifications:', error);
@@ -82,6 +104,10 @@ export const useNotifications = () => {
     }
   };
 
+  /**
+   * Creates an in-app notification always (server). Sends web push only if the client
+   * is built with VAPID and subscription succeeded — one toast, no conflicting messages.
+   */
   const sendTestNotification = async () => {
     try {
       if (permission !== 'granted') {
@@ -89,12 +115,31 @@ export const useNotifications = () => {
         if (!granted) return;
       }
 
-      if (!isSubscribed) {
-        await subscribe();
+      const pushReady = isWebPushClientConfigured();
+      let registered = false;
+      if (pushReady) {
+        registered = await subscribe({ quiet: true });
       }
 
       const response = await notificationsAPI.sendTest();
-      toast.success(response?.message || 'Test notification sent!');
+
+      if (!pushReady) {
+        toast.success(
+          response?.message ||
+            'In-app reminder created. For browser push when the app is closed, add VITE_VAPID_PUBLIC_KEY to your frontend build (same as server public key) and redeploy.'
+        );
+      } else if (registered) {
+        toast.success(
+          response?.message ||
+            'Test sent — you should see a notification (try with Chrome in the background).'
+        );
+      } else {
+        toast.success(
+          response?.message ||
+            'In-app reminder created. This device could not register for push — check VITE_VAPID_PUBLIC_KEY on your host and try Enable on the feed banner.'
+        );
+      }
+
       window.dispatchEvent(new CustomEvent('notifications:updated'));
     } catch (error: unknown) {
       console.error('Error sending test notification:', error);
@@ -113,6 +158,7 @@ export const useNotifications = () => {
     isSupported,
     permission,
     isSubscribed,
+    isWebPushConfigured: isWebPushClientConfigured(),
     requestPermission,
     subscribe,
     unsubscribe,
