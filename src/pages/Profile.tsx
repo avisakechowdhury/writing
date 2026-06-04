@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   User, 
   Flame, 
@@ -16,10 +16,20 @@ import PostCard from '../components/Post/PostCard';
 const Profile: React.FC = () => {
   const { user } = useAuth();
   const { posts, likePost, addComment, likeComment } = usePosts();
+  const [visiblePostsCount, setVisiblePostsCount] = useState(5);
+  const userId = user?.id ?? '';
+
+  const userPosts = useMemo(
+    () =>
+      posts
+        .filter(post => post.authorId === userId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [posts, userId]
+  );
+  const visiblePosts = userPosts.slice(0, visiblePostsCount);
+  const hasMorePosts = visiblePostsCount < userPosts.length;
 
   if (!user) return null;
-
-  const userPosts = posts.filter(post => post.authorId === user.id);
   
   // Calculate total likes received on user's posts
   const totalLikesReceived = userPosts.reduce((sum, post) => sum + post.likes, 0);
@@ -31,16 +41,8 @@ const Profile: React.FC = () => {
     likePost(postId, user.id);
   };
 
-  const handleComment = (postId: string, content: string) => {
-    addComment(postId, {
-      postId,
-      authorId: user.id,
-      authorName: user.displayName,
-      content,
-      likes: 0,
-      likedBy: [],
-      reactions: []
-    });
+  const handleComment = (postId: string, content: string, parentId?: string | null) => {
+    addComment(postId, content, parentId);
   };
 
   const handleLikeComment = (postId: string, commentId: string) => {
@@ -142,7 +144,7 @@ const Profile: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-6">
-              {userPosts.map(post => (
+              {visiblePosts.map(post => (
                 <PostCard
                   key={post.id}
                   post={post}
@@ -151,6 +153,17 @@ const Profile: React.FC = () => {
                   onLikeComment={handleLikeComment}
                 />
               ))}
+              {hasMorePosts && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setVisiblePostsCount(prev => prev + 5)}
+                    className="px-5 py-2.5 border border-neutral-300 text-neutral-700 rounded-lg font-medium hover:bg-neutral-50 transition-colors"
+                  >
+                    Load more
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

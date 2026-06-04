@@ -3,7 +3,6 @@ import {
   User, 
   Bell, 
   Shield, 
-  Palette, 
   Globe, 
   Save,
   Eye,
@@ -38,7 +37,7 @@ const Settings: React.FC = () => {
     notifications: user?.preferences.notifications || true,
     reminderTime: user?.preferences.reminderTime || '20:00',
     isAnonymous: user?.preferences.isAnonymous || false,
-    timezone: user?.preferences.timezone || 'UTC'
+    timezone: user?.preferences.timezone || 'Asia/Kolkata'
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -295,6 +294,7 @@ const Settings: React.FC = () => {
                 onChange={(e) => setSettings(prev => ({ ...prev, timezone: e.target.value }))}
                 className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
+                <option value="Asia/Kolkata">India Standard Time (IST)</option>
                 <option value="UTC">UTC</option>
                 <option value="America/New_York">Eastern Time</option>
                 <option value="America/Chicago">Central Time</option>

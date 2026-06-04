@@ -91,34 +91,25 @@ const PostView: React.FC = () => {
     }
   };
 
-  const handleComment = async (postId: string, content: string) => {
+  const handleComment = async (postId: string, content: string, parentId?: string | null) => {
     if (!user) {
       showAuthRequiredToastSimple('comment on posts');
       return;
     }
-    
-    if (user) {
-      try {
-        const newComment = await addComment(postId, {
-        postId,
-        authorId: user.id,
-        authorName: user.displayName,
-        content,
-        likes: 0,
-        likedBy: [],
-        reactions: []
-      });
-        
-        setPost(prev => {
-          if (!prev || prev.id !== postId || !newComment) return prev;
+
+    try {
+      const newComment = await addComment(postId, content, parentId);
+      if (newComment) {
+        setPost((prev) => {
+          if (!prev || prev.id !== postId) return prev;
           return {
             ...prev,
             comments: [...prev.comments, newComment]
           };
         });
-      } catch (error) {
-        console.error('Failed to add comment:', error);
       }
+    } catch (error) {
+      console.error('Failed to add comment:', error);
     }
   };
 
@@ -240,34 +231,59 @@ const PostView: React.FC = () => {
             
             {/* Structured Data (JSON-LD) for better search engine understanding */}
             <script type="application/ld+json">
-              {JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "BlogPosting",
-                "headline": post.title || 'Post',
-                "description": fullDescription,
-                "url": postUrl,
-                "datePublished": publishedDate,
-                "dateModified": modifiedDate,
-                "author": {
-                  "@type": post.isAnonymous ? "Person" : "Person",
-                  "name": authorName
+              {JSON.stringify([
+                {
+                  "@context": "https://schema.org",
+                  "@type": "BreadcrumbList",
+                  "itemListElement": [
+                    {
+                      "@type": "ListItem",
+                      "position": 1,
+                      "name": "WriteAnon",
+                      "item": window.location.origin
+                    },
+                    {
+                      "@type": "ListItem",
+                      "position": 2,
+                      "name": post.title || 'Post',
+                      "item": postUrl
+                    }
+                  ]
                 },
-                "publisher": {
-                  "@type": "Organization",
-                  "name": "WriteAnon",
-                  "logo": {
-                    "@type": "ImageObject",
-                    "url": `${window.location.origin}/logo.png`
-                  }
-                },
-                "mainEntityOfPage": {
-                  "@type": "WebPage",
-                  "@id": postUrl
-                },
-                "keywords": post.tags ? post.tags.join(', ') : 'writing, mental health',
-                "articleSection": "Mental Health Writing",
-                "wordCount": post.wordCount || 0
-              })}
+                {
+                  "@context": "https://schema.org",
+                  "@type": "BlogPosting",
+                  "headline": post.title || 'Post',
+                  "description": fullDescription,
+                  "url": postUrl,
+                  "inLanguage": "en",
+                  "isAccessibleForFree": true,
+                  "datePublished": publishedDate,
+                  "dateModified": modifiedDate,
+                  "author": {
+                    "@type": "Person",
+                    "name": authorName
+                  },
+                  "publisher": {
+                    "@type": "Organization",
+                    "name": "WriteAnon",
+                    "url": window.location.origin,
+                    "logo": {
+                      "@type": "ImageObject",
+                      "url": `${window.location.origin}/logo.png`
+                    }
+                  },
+                  "mainEntityOfPage": {
+                    "@type": "WebPage",
+                    "@id": postUrl
+                  },
+                  "keywords": post.tags?.length
+                    ? post.tags.join(', ')
+                    : 'write anon, anonymous journal, mental health writing',
+                  "articleSection": "Mental Health Writing",
+                  "wordCount": post.wordCount || 0
+                }
+              ])}
             </script>
           </SafeHelmet>
         );

@@ -3,6 +3,7 @@ import webpush from 'web-push';
 import User from '../models/User.js';
 import { createInAppNotification } from './notificationService.js';
 import { sendPushNotification } from './sendPushNotification.js';
+import { buildPushPayload } from './pushPayload.js';
 
 // Configure web push only if VAPID keys are provided
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
@@ -35,6 +36,17 @@ const getDatePartsInTimeZone = (date, timeZone) => {
   };
 };
 
+const getSafeTimeZone = (timeZone) => {
+  const fallbackTimeZone = 'Asia/Kolkata';
+  if (!timeZone) return fallbackTimeZone;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone }).format(new Date());
+    return timeZone;
+  } catch {
+    return fallbackTimeZone;
+  }
+};
+
 export const setupCronJobs = () => {
   // Send daily writing reminders frequently and match by user timezone.
   cron.schedule('*/5 * * * *', async () => {
@@ -53,7 +65,7 @@ export const setupCronJobs = () => {
         const reminderTime = user.preferences.reminderTime || '20:00';
         const [reminderHour, reminderMinute] = reminderTime.split(':').map(Number);
 
-        const timezone = user.preferences?.timezone || 'UTC';
+        const timezone = getSafeTimeZone(user.preferences?.timezone);
         const nowParts = getDatePartsInTimeZone(now, timezone);
 
         // Run within a 5-min window per user's local time.
@@ -79,15 +91,16 @@ export const setupCronJobs = () => {
             url: '/write'
           });
 
-          await sendPushNotification(user._id, {
-            title: 'Time to Write',
-            body: `Your words matter. Open WriteAnon and share a thought today.`,
-            icon: '/icon-192x192.png',
-            badge: '/badge-72x72.png',
-            data: {
-              url: '/write'
-            }
-          });
+          await sendPushNotification(
+            user._id,
+            buildPushPayload({
+              title: 'Time to Write',
+              body: 'Your words matter. Open WriteAnon and share a thought today.',
+              url: '/write',
+              tag: `reminder-${nowParts.dateKey}`,
+              type: 'reminder'
+            })
+          );
 
           user.lastReminderSentAt = new Date();
           await user.save();

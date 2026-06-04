@@ -91,6 +91,7 @@ export interface Comment {
   authorId: string;
   authorName: string;
   content: string;
+  parentId?: string | null;
   createdAt: Date;
   likes: number;
   likedBy: string[];

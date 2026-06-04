@@ -1,6 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import ReactQuill from 'react-quill';
+import katex from 'katex';
 import 'react-quill/dist/quill.snow.css';
+import 'katex/dist/katex.min.css';
 
 interface RichTextEditorProps {
   value: string;
@@ -19,13 +21,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   compact = false
 }) => {
   const quillRef = useRef<ReactQuill>(null);
+  (window as Window & { katex?: typeof katex }).katex = katex;
 
   const modules = {
     toolbar: [
       [{ header: [1, 2, 3, false] }],
       ['bold', 'italic', 'underline', 'strike'],
+      [{ script: 'super' }, { script: 'sub' }],
       [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '+1' }],
-      ['blockquote', 'code-block'],
+      ['blockquote', 'code', 'formula'],
       ['link'],
       ['clean']
     ]
@@ -37,11 +41,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     'italic',
     'underline',
     'strike',
+    'script',
     'list',
     'bullet',
     'indent',
     'blockquote',
+    'code',
     'code-block',
+    'formula',
     'link'
   ];
 
@@ -56,7 +63,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   }, [value]);
 
   return (
-    <div className={`${className}`}>
+    <div className={`rich-editor ${compact ? 'rich-editor-compact' : 'rich-editor-default'} ${className}`}>
       <ReactQuill
         ref={quillRef}
         theme="snow"
@@ -65,30 +72,44 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         modules={modules}
         formats={formats}
         placeholder={placeholder}
-        style={{
-          height: compact ? '160px' : '400px',
-          marginBottom: compact ? '12px' : '50px'
-        }}
       />
       <style
         dangerouslySetInnerHTML={{
           __html: `
+          .rich-editor .quill {
+            display: flex !important;
+            flex-direction: column !important;
+          }
+
           .ql-toolbar {
             border: 1px solid #e5e7eb !important;
             border-radius: 8px 8px 0 0 !important;
             background: #f9fafb !important;
           }
           
-          .ql-container {
+          .rich-editor .ql-container {
             border: 1px solid #e5e7eb !important;
             border-radius: 0 0 8px 8px !important;
             font-family: inherit !important;
+            display: flex !important;
+            flex-direction: column !important;
           }
           
-          .ql-editor {
+          .rich-editor .ql-editor {
             font-size: 16px !important;
             line-height: 1.6 !important;
-            min-height: ${compact ? '140px' : '400px'} !important;
+            min-height: ${compact ? '120px' : '220px'} !important;
+            max-height: ${compact ? '200px' : '420px'} !important;
+            overflow-y: auto !important;
+          }
+
+          .rich-editor-default {
+            margin-bottom: 16px !important;
+          }
+
+          .rich-editor .ql-editor pre.ql-syntax {
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
           }
           
           .ql-editor.ql-blank::before {

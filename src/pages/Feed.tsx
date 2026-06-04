@@ -32,23 +32,12 @@ const Feed: React.FC = () => {
     }
   };
 
-  const handleComment = (postId: string, content: string) => {
+  const handleComment = (postId: string, content: string, parentId?: string | null) => {
     if (!user) {
       redirectToLanding();
       return;
     }
-    
-    if (user) {
-      addComment(postId, {
-        postId,
-        authorId: user.id,
-        authorName: user.displayName,
-        content,
-        likes: 0,
-        likedBy: [],
-        reactions: []
-      });
-    }
+    addComment(postId, content, parentId);
   };
 
   const handleLikeComment = (postId: string, commentId: string) => {
@@ -79,9 +68,9 @@ const Feed: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Helmet>
-        <title>Mental Health Stories & Anonymous Posts — WriteAnon Community Feed</title>
-        <meta name="description" content="Discover inspiring mental health stories and anonymous posts from writers worldwide. Read about anxiety, depression, emotional wellness, and personal journeys. Share your own thoughts anonymously." />
-        <meta name="keywords" content="mental health stories, anonymous posts, emotional wellness, anxiety stories, depression support, mental health community, anonymous writing, personal journeys, emotional expression" />
+        <title>WriteAnon (Write Anon) — Anonymous Journal, Mental Health Stories & Daily Writing</title>
+        <meta name="description" content="Explore WriteAnon mental health stories and anonymous posts. Write anonymously online, keep a daily reflection journal, and express your thoughts safely in a supportive community." />
+        <meta name="keywords" content="write anon, write anonymous, anonymous journal online, mental health stories, write anonymously online, daily mental health journal, journaling for mental health, safe space for daily thoughts, expressive writing platform, online journal for anxiety relief" />
         <link rel="canonical" href="https://writeanon.in/" />
       </Helmet>
       <PushPromptBanner />

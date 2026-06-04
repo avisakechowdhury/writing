@@ -160,9 +160,9 @@ export const usePosts = () => {
     }
   };
 
-  const addComment = async (postId: string, commentData: Omit<Comment, 'id' | 'createdAt'>) => {
+  const addComment = async (postId: string, content: string, parentId?: string | null) => {
     try {
-      const response = await postsAPI.addComment(postId, commentData.content);
+      const response = await postsAPI.addComment(postId, content, parentId);
       
       const newComment = {
         ...response.comment,

@@ -1,3 +1,9 @@
+const resolveAssetUrl = (path) => {
+  if (!path) return new URL('/logo.png', self.location.origin).href;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  return new URL(path, self.location.origin).href;
+};
+
 self.addEventListener('push', (event) => {
   if (!event.data) return;
 
@@ -9,10 +15,13 @@ self.addEventListener('push', (event) => {
   }
 
   const title = payload.title || 'WriteAnon';
+  const tag = payload.tag || payload?.data?.tag;
   const options = {
     body: payload.body || '',
-    icon: payload.icon || '/icon-192x192.png',
-    badge: payload.badge || '/badge-72x72.png',
+    icon: resolveAssetUrl(payload.icon),
+    badge: resolveAssetUrl(payload.badge),
+    tag: tag || undefined,
+    renotify: false,
     data: payload.data || { url: '/' }
   };
 
@@ -22,20 +31,22 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  const absoluteUrl = targetUrl.startsWith('http')
+    ? targetUrl
+    : new URL(targetUrl, self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
       for (const client of windowClients) {
         if ('focus' in client) {
-          client.navigate(targetUrl);
+          client.navigate(absoluteUrl);
           return client.focus();
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
+        return clients.openWindow(absoluteUrl);
       }
       return null;
     })
   );
 });
-

@@ -1,12 +1,19 @@
 {
   "name": "WriteAnon",
   "short_name": "WriteAnon",
-  "description": "Your story. Your secret. - Anonymous writing community",
+  "description": "Anonymous journal and expressive writing platform for mental wellness",
   "icons": [
     {
       "src": "/logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "start_url": "/",

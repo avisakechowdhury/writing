@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import { authenticate } from '../middleware/auth.js';
 import { createInAppNotification } from '../services/notificationService.js';
 import { sendPushNotification } from '../services/sendPushNotification.js';
+import { buildPushPayload } from '../services/pushPayload.js';
 
 const router = express.Router();
 
@@ -161,12 +162,16 @@ router.post('/send', authenticate, [
         url: `/messages/${senderId}`
       });
 
-      sendPushNotification(receiverId, {
-        title: 'New message',
-        body: `${req.user.displayName}: ${content.substring(0, 80)}`,
-        icon: '/icon-192x192.png',
-        url: `/messages/${senderId}`
-      });
+      sendPushNotification(
+        receiverId,
+        buildPushPayload({
+          title: 'New message',
+          body: `${req.user.displayName}: ${content.substring(0, 80)}`,
+          url: `/messages/${senderId}`,
+          tag: `dm-${conversationId}`,
+          type: 'message'
+        })
+      );
     }
 
     // Emit socket event to both users

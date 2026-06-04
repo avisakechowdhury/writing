@@ -242,12 +242,14 @@ export const postsAPI = {
     return response.data;
   },
   
-  addComment: async (postId: string, content: string) => {
-    // Validate postId format before making request
+  addComment: async (postId: string, content: string, parentId?: string | null) => {
     if (!postId || !/^[0-9a-fA-F]{24}$/.test(postId)) {
       throw new Error('Invalid post ID format');
     }
-    const response = await api.post(`/posts/${postId}/comments`, { content });
+    const response = await api.post(`/posts/${postId}/comments`, {
+      content,
+      ...(parentId ? { parentId } : {})
+    });
     return response.data;
   },
 

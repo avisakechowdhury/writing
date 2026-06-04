@@ -6,6 +6,11 @@ import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { sendPushNotification } from '../services/sendPushNotification.js';
 import { createInAppNotification } from '../services/notificationService.js';
 import { isValidObjectId, sanitizeHTML } from '../utils/validation.js';
+import {
+  commentAuthorNameForUser,
+  transformComment
+} from '../utils/commentDisplay.js';
+import { buildPushPayload } from '../services/pushPayload.js';
 
 const router = express.Router();
 
@@ -72,17 +77,7 @@ router.get('/', async (req, res) => {
       contentEditedAt: post.contentEditedAt || null,
       likes: post.likes,
       likedBy: post.likedBy.map(id => id.toString()),
-      comments: post.comments.map(comment => ({
-        id: comment.id,
-        postId: post._id,
-        authorId: comment.authorId,
-        authorName: comment.authorName,
-        content: comment.content,
-        createdAt: comment.createdAt,
-        likes: comment.likes,
-        likedBy: comment.likedBy.map(id => id.toString()),
-        reactions: comment.reactions
-      })),
+      comments: post.comments.map((comment) => transformComment(post, comment)),
       tags: post.tags,
       mood: post.mood,
       wordCount: post.wordCount
@@ -148,17 +143,7 @@ router.get('/:id', async (req, res) => {
       contentEditedAt: post.contentEditedAt || null,
       likes: post.likes,
       likedBy: post.likedBy.map(id => id.toString()),
-      comments: post.comments.map(comment => ({
-        id: comment.id,
-        postId: post._id,
-        authorId: comment.authorId,
-        authorName: comment.authorName,
-        content: comment.content,
-        createdAt: comment.createdAt,
-        likes: comment.likes,
-        likedBy: comment.likedBy.map(id => id.toString()),
-        reactions: comment.reactions
-      })),
+      comments: post.comments.map((comment) => transformComment(post, comment)),
       tags: post.tags,
       mood: post.mood,
       wordCount: post.wordCount
@@ -236,17 +221,7 @@ router.put('/:id', authenticate, [
       contentEditedAt: populated.contentEditedAt || null,
       likes: populated.likes,
       likedBy: populated.likedBy.map((uid) => uid.toString()),
-      comments: populated.comments.map((comment) => ({
-        id: comment.id,
-        postId: populated._id,
-        authorId: comment.authorId,
-        authorName: comment.authorName,
-        content: comment.content,
-        createdAt: comment.createdAt,
-        likes: comment.likes,
-        likedBy: comment.likedBy.map((uid) => uid.toString()),
-        reactions: comment.reactions
-      })),
+      comments: populated.comments.map((comment) => transformComment(populated, comment)),
       tags: populated.tags,
       mood: populated.mood,
       wordCount: populated.wordCount
@@ -392,12 +367,16 @@ router.post('/:id/like', authenticate, async (req, res) => {
           body: `${req.user.displayName} liked your post "${post.title}"`,
           url: `/post/${post._id}`
         });
-        sendPushNotification(post.authorId, {
-          title: 'Your post was liked!',
-          body: `${req.user.displayName} liked your post.`,
-          icon: '/icon-192x192.png',
-          url: `/post/${post._id}`
-        });
+        sendPushNotification(
+          post.authorId,
+          buildPushPayload({
+            title: 'Your post was liked!',
+            body: `${req.user.displayName} liked your post.`,
+            url: `/post/${post._id}`,
+            tag: `like-${post._id}`,
+            type: 'like'
+          })
+        );
       }
     }
 
@@ -414,9 +393,10 @@ router.post('/:id/like', authenticate, async (req, res) => {
   }
 });
 
-// Add comment to post
+// Add comment to post (optional parentId for replies)
 router.post('/:id/comments', authenticate, [
-  body('content').isLength({ min: 1, max: 5000 }).trim()
+  body('content').isLength({ min: 1, max: 5000 }).trim(),
+  body('parentId').optional().isString().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -425,8 +405,8 @@ router.post('/:id/comments', authenticate, [
     }
 
     const { id } = req.params;
-    
-    // Validate that the ID is a valid MongoDB ObjectId
+    const { parentId } = req.body;
+
     if (!isValidObjectId(id)) {
       return res.status(400).json({ message: 'Invalid post ID format' });
     }
@@ -436,13 +416,22 @@ router.post('/:id/comments', authenticate, [
       return res.status(404).json({ message: 'Post not found' });
     }
 
+    if (parentId) {
+      const parent = post.comments.find((c) => c.id === parentId);
+      if (!parent) {
+        return res.status(400).json({ message: 'Parent comment not found' });
+      }
+    }
+
     const safeComment = sanitizeHTML(req.body.content);
     const plainForPush = safeComment.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140);
+    const displayName = commentAuthorNameForUser(post, req.user._id, req.user.displayName);
 
     const comment = {
       authorId: req.user._id,
-      authorName: req.user.displayName,
+      authorName: displayName,
       content: safeComment,
+      parentId: parentId || null,
       likes: 0,
       likedBy: [],
       reactions: []
@@ -451,40 +440,34 @@ router.post('/:id/comments', authenticate, [
     post.comments.push(comment);
     await post.save();
 
-    // Get the newly created comment
     const newComment = post.comments[post.comments.length - 1];
+    const transformed = transformComment(post, newComment);
 
-    // Send push notification to post author if not self-comment
     if (post.authorId.toString() !== req.user._id.toString()) {
+      const replyLabel = parentId ? 'replied to a comment on' : 'commented on';
       await createInAppNotification({
         userId: post.authorId,
         actorId: req.user._id,
         type: 'comment',
-        title: 'New comment on your post',
-        body: `${req.user.displayName} commented on "${post.title}"`,
+        title: parentId ? 'New reply on your post' : 'New comment on your post',
+        body: `${displayName} ${replyLabel} "${post.title}"`,
         url: `/post/${post._id}`
       });
-      sendPushNotification(post.authorId, {
-        title: 'New comment on your post!',
-        body: `${req.user.displayName} commented: ${plainForPush || 'New comment'}`,
-        icon: '/icon-192x192.png',
-        url: `/post/${post._id}`
-      });
+      sendPushNotification(
+        post.authorId,
+        buildPushPayload({
+          title: parentId ? 'New reply on your post' : 'New comment on your post!',
+          body: `${displayName}: ${plainForPush || 'New comment'}`,
+          url: `/post/${post._id}`,
+          tag: `comment-${post._id}-${req.user._id}`,
+          type: 'comment'
+        })
+      );
     }
 
     res.status(201).json({
       message: 'Comment added successfully',
-      comment: {
-        id: newComment.id,
-        postId: post._id,
-        authorId: newComment.authorId,
-        authorName: newComment.authorName,
-        content: newComment.content,
-        createdAt: newComment.createdAt,
-        likes: newComment.likes,
-        likedBy: [],
-        reactions: []
-      }
+      comment: transformed
     });
   } catch (error) {
     console.error('Add comment error:', error);
@@ -563,17 +546,7 @@ router.get('/my-posts', authenticate, async (req, res) => {
       contentEditedAt: post.contentEditedAt || null,
       likes: post.likes,
       likedBy: post.likedBy.map(id => id.toString()),
-      comments: post.comments.map(comment => ({
-        id: comment.id,
-        postId: post._id,
-        authorId: comment.authorId,
-        authorName: comment.authorName,
-        content: comment.content,
-        createdAt: comment.createdAt,
-        likes: comment.likes,
-        likedBy: comment.likedBy.map(id => id.toString()),
-        reactions: comment.reactions
-      })),
+      comments: post.comments.map((comment) => transformComment(post, comment)),
       tags: post.tags,
       mood: post.mood,
       wordCount: post.wordCount,

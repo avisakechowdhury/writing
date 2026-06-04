@@ -12,6 +12,48 @@ const EDIT_WINDOW_MS = 60 * 60 * 1000;
 const plainFromHtml = (html: string) =>
   html.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim();
 
+const escapeHtml = (input: string) =>
+  input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const decodeBasicEntities = (input: string) =>
+  input
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'");
+
+const normalizeLegacyCodeBlockPost = (html: string) => {
+  const trimmed = html.trim();
+  const preMatch = trimmed.match(/^<pre[^>]*>([\s\S]*?)<\/pre>$/i);
+  if (!preMatch) return html;
+
+  const plain = decodeBasicEntities(
+    preMatch[1]
+      .replace(/<code[^>]*>/gi, '')
+      .replace(/<\/code>/gi, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+  );
+
+  const lines = plain.split('\n').map(line => line.trim()).filter(Boolean);
+  if (lines.length < 3) return html;
+
+  const sentenceLikeCount = lines.filter(line => /[.!?]/.test(line) && line.split(/\s+/).length >= 6).length;
+  const codeLikeCount = lines.filter(line => /[{}[\];=<>]/.test(line)).length;
+  if (sentenceLikeCount < 2 || sentenceLikeCount <= codeLikeCount) return html;
+
+  const [firstLine, ...restLines] = lines;
+  const codeLine = `<pre class="ql-syntax" spellcheck="false">${escapeHtml(firstLine)}</pre>`;
+  const contentLines = restLines.map(line => `<p>${escapeHtml(line)}</p>`).join('');
+  return `${codeLine}${contentLines}`;
+};
+
 const Write: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -80,7 +122,7 @@ const Write: React.FC = () => {
 
         setEditingPostId(editParam);
         setTitle(post.title);
-        setContent(post.content);
+        setContent(normalizeLegacyCodeBlockPost(post.content));
         setIsAnonymous(post.isAnonymous);
         setMood(post.mood || '');
         setTags((post.tags || []).join(', '));

@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { authenticate } from '../middleware/auth.js';
 import { createInAppNotification } from '../services/notificationService.js';
+import { buildPushPayload } from '../services/pushPayload.js';
 
 const router = express.Router();
 
@@ -100,16 +101,16 @@ router.post('/test', authenticate, async (req, res) => {
       });
     }
 
-    const payload = JSON.stringify({
-      title: 'Time to Write',
-      body: `Your words matter. Open WriteAnon and share a thought today.`,
-      icon: '/icon-192x192.png',
-      badge: '/badge-72x72.png',
-      data: {
-        url: '/write'
-      }
-    });
-    
+    const payload = JSON.stringify(
+      buildPushPayload({
+        title: 'Time to Write',
+        body: 'Your words matter. Open WriteAnon and share a thought today.',
+        url: '/write',
+        tag: 'test-reminder',
+        type: 'reminder'
+      })
+    );
+
     await webpush.sendNotification(user.pushSubscription, payload);
     
     res.json({ message: 'Test reminder notification sent successfully' });

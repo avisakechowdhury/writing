@@ -75,7 +75,8 @@ const QUILL_ALLOWED_CLASSES = {
   li: [/^ql-indent-[1-9]$/],
   ol: [/^ql-indent-[1-9]$/],
   ul: [/^ql-indent-[1-9]$/],
-  span: [/^ql-ui$/]
+  span: [/^ql-ui$/, /^ql-formula$/],
+  pre: [/^ql-syntax$/]
 };
 
 /**
@@ -93,11 +94,12 @@ export const sanitizeHTML = (html) => {
     ],
     allowedAttributes: {
       a: ['href', 'target', 'rel'],
-      span: ['class'],
+      span: ['class', 'data-value'],
       p: ['class'],
       li: ['class'],
       ol: ['class'],
-      ul: ['class']
+      ul: ['class'],
+      pre: ['class']
     },
     allowedClasses: QUILL_ALLOWED_CLASSES,
     allowedSchemes: ['http', 'https', 'mailto'],

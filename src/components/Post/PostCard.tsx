@@ -25,7 +25,7 @@ import { showAuthRequiredToastSimple } from '../../utils/toastUtils';
 interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
-  onComment: (postId: string, content: string) => Promise<void> | void;
+  onComment: (postId: string, content: string, parentId?: string | null) => Promise<void> | void;
   onLikeComment: (postId: string, commentId: string) => void;
 }
 
@@ -335,6 +335,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment, onLikeComm
         <CommentSection
           postId={post.id}
           comments={post.comments}
+          isAnonymous={post.isAnonymous}
+          postAuthorId={post.authorId}
           onAddComment={onComment}
           onLikeComment={(commentId) => onLikeComment(post.id, commentId)}
         />

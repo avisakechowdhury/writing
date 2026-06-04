@@ -52,6 +52,10 @@ const postSchema = new mongoose.Schema({
       required: true,
       maxlength: 5000
     },
+    parentId: {
+      type: String,
+      default: null
+    },
     likes: {
       type: Number,
       default: 0

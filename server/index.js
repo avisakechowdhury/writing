@@ -18,6 +18,9 @@ import Post from './models/Post.js';
 import { authenticateSocket } from './middleware/auth.js';
 import { setupCronJobs } from './services/cronJobs.js';
 import Message from './models/Message.js';
+import { createInAppNotification } from './services/notificationService.js';
+import { sendPushNotification } from './services/sendPushNotification.js';
+import { buildPushPayload } from './services/pushPayload.js';
 import { sanitizeInput } from './middleware/sanitize.js';
 import { sanitizeHTML } from './utils/validation.js';
 
@@ -157,6 +160,59 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/random-chat', randomChatRoutes);
 app.use('/api/reports', reportRoutes);
+
+// Public SEO metadata for posts (used by share previews and crawlers)
+app.get('/api/seo/post/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+      return res.status(400).json({ message: 'Invalid post ID' });
+    }
+
+    const post = await Post.findById(id)
+      .select('title content isAnonymous authorName tags wordCount createdAt updatedAt isPublic isDraft')
+      .lean();
+
+    if (!post || !post.isPublic || post.isDraft) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const baseUrl = process.env.CLIENT_URL?.split(',')[0]?.trim() || 'https://writeanon.in';
+    const plain = (post.content || '').replace(/<[^>]*>/g, '').trim();
+    const description = plain.substring(0, 160) || 'Read this post on WriteAnon';
+    const authorName = post.isAnonymous ? 'Anonymous' : post.authorName;
+
+    res.json({
+      title: `${post.title} | WriteAnon`,
+      description,
+      canonical: `${baseUrl}/post/${id}`,
+      authorName,
+      tags: post.tags || [],
+      wordCount: post.wordCount || 0,
+      publishedAt: post.createdAt,
+      modifiedAt: post.updatedAt,
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: post.title,
+        description,
+        url: `${baseUrl}/post/${id}`,
+        datePublished: post.createdAt,
+        dateModified: post.updatedAt,
+        author: { '@type': 'Person', name: authorName },
+        publisher: {
+          '@type': 'Organization',
+          name: 'WriteAnon',
+          logo: { '@type': 'ImageObject', url: `${baseUrl}/logo.png` }
+        },
+        keywords: (post.tags || []).join(', ')
+      }
+    });
+  } catch (error) {
+    console.error('SEO post metadata error:', error);
+    res.status(500).json({ message: 'Failed to load SEO metadata' });
+  }
+});
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -334,6 +390,28 @@ io.on('connection', (socket) => {
       await message.save();
       await message.populate('senderId', 'displayName username avatar');
       await message.populate('receiverId', 'displayName username avatar');
+
+      if (receiverId !== socket.userId) {
+        const senderName = message.senderId?.displayName || socket.username;
+        await createInAppNotification({
+          userId: receiverId,
+          actorId: socket.userId,
+          type: 'message',
+          title: 'New direct message',
+          body: `${senderName} sent you a message.`,
+          url: `/messages/${socket.userId}`
+        });
+        sendPushNotification(
+          receiverId,
+          buildPushPayload({
+            title: 'New message',
+            body: `${senderName}: ${sanitizedContent.substring(0, 80)}`,
+            url: `/messages/${socket.userId}`,
+            tag: `dm-${conversationId}`,
+            type: 'message'
+          })
+        );
+      }
       
       const messageData = {
         id: message._id,

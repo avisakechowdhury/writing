@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 import App from './App.tsx';
 import './index.css';
+import 'katex/dist/katex.min.css';
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

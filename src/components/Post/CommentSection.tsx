@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Heart, User, Clock, MessageCircle, Eye, Pencil } from 'lucide-react';
+import { Send, Heart, User, Clock, MessageCircle, Eye, Pencil, Reply, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -43,13 +43,17 @@ const CommentBody: React.FC<{ content: string }> = ({ content }) => {
 interface CommentSectionProps {
   postId: string;
   comments: Comment[];
-  onAddComment: (postId: string, content: string) => Promise<void> | void;
+  isAnonymous?: boolean;
+  postAuthorId?: string;
+  onAddComment: (postId: string, content: string, parentId?: string | null) => Promise<void> | void;
   onLikeComment: (commentId: string) => void;
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({
   postId,
   comments,
+  isAnonymous = false,
+  postAuthorId,
   onAddComment,
   onLikeComment
 }) => {
@@ -57,6 +61,17 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
+
+  const isPostAuthor = Boolean(
+    user && postAuthorId && user.id === postAuthorId
+  );
+
+  const submitLabel = replyingTo
+    ? 'Reply'
+    : isAnonymous && isPostAuthor
+      ? 'Comment as Author'
+      : 'Comment';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,8 +88,9 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
     setIsSubmitting(true);
     try {
-      await onAddComment(postId, text);
+      await onAddComment(postId, text, replyingTo?.id ?? null);
       setNewComment('');
+      setReplyingTo(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -89,17 +105,111 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     onLikeComment(commentId);
   };
 
+  const rootComments = comments.filter((c) => !c.parentId);
+  const repliesByParent = comments.reduce<Record<string, Comment[]>>((acc, comment) => {
+    if (!comment.parentId) return acc;
+    if (!acc[comment.parentId]) acc[comment.parentId] = [];
+    acc[comment.parentId].push(comment);
+    return acc;
+  }, {});
+
+  const renderComment = (comment: Comment, isReply = false) => (
+    <div key={comment.id} className={`flex space-x-3 ${isReply ? 'ml-8 sm:ml-10' : ''}`}>
+      <div
+        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+          comment.authorName === 'Author'
+            ? 'bg-gradient-to-br from-primary-500 to-violet-600'
+            : 'bg-gradient-to-br from-secondary-500 to-accent-500'
+        }`}
+      >
+        <User className="w-4 h-4 text-white" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+          <span className="font-medium text-neutral-900 text-sm">
+            {comment.authorName}
+          </span>
+          <div className="flex items-center space-x-1 text-xs text-neutral-500">
+            <Clock className="w-3 h-3" />
+            <span>
+              {formatDistanceToNow(
+                comment.createdAt instanceof Date ? comment.createdAt : new Date(comment.createdAt),
+                { addSuffix: true }
+              )}
+            </span>
+          </div>
+        </div>
+        <div className="prose prose-sm max-w-none text-neutral-700 leading-relaxed">
+          <CommentBody content={comment.content} />
+        </div>
+        <div className="flex items-center space-x-4 mt-2">
+          <button
+            type="button"
+            onClick={() => handleLikeComment(comment.id)}
+            className={`flex items-center space-x-1 text-xs transition-colors ${
+              user && comment.likedBy.includes(user.id)
+                ? 'text-error-600'
+                : 'text-neutral-500 hover:text-error-600'
+            }`}
+          >
+            <Heart className="w-3 h-3" />
+            <span>{comment.likes}</span>
+          </button>
+          {user && (
+            <button
+              type="button"
+              onClick={() => {
+                setReplyingTo(comment);
+                setIsPreviewMode(false);
+              }}
+              className="flex items-center space-x-1 text-xs text-neutral-500 hover:text-primary-600 transition-colors"
+            >
+              <Reply className="w-3 h-3" />
+              <span>Reply</span>
+            </button>
+          )}
+        </div>
+        {(repliesByParent[comment.id] || []).map((reply) => renderComment(reply, true))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="border-t border-neutral-200 bg-white">
       {user && (
         <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-b border-neutral-100">
+          {replyingTo && (
+            <div className="mb-3 flex items-center justify-between gap-2 rounded-lg bg-primary-50 px-3 py-2 text-sm text-primary-800">
+              <span>
+                Replying to <strong>{replyingTo.authorName}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => setReplyingTo(null)}
+                className="p-1 rounded hover:bg-primary-100 text-primary-700"
+                aria-label="Cancel reply"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           <div className="flex gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center flex-shrink-0">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                isAnonymous && isPostAuthor
+                  ? 'bg-gradient-to-br from-primary-500 to-violet-600'
+                  : 'bg-gradient-to-br from-primary-500 to-secondary-500'
+              }`}
+            >
               <User className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-2 gap-2">
-                <span className="text-sm text-neutral-500">Supports Markdown formatting</span>
+                <span className="text-sm text-neutral-500">
+                  {isAnonymous && isPostAuthor && !replyingTo
+                    ? 'You will appear as Author'
+                    : 'Supports Markdown formatting'}
+                </span>
                 <div className="flex rounded-lg border border-neutral-200 overflow-hidden text-sm shrink-0">
                   <button
                     type="button"
@@ -131,7 +241,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 <textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Add a thoughtful comment..."
+                  placeholder={
+                    replyingTo
+                      ? `Reply to ${replyingTo.authorName}...`
+                      : isAnonymous && isPostAuthor
+                        ? 'Reply as Author...'
+                        : 'Add a thoughtful comment...'
+                  }
                   className="w-full px-3 py-3 border border-neutral-300 rounded-lg resize-y min-h-[11rem] sm:min-h-[7.5rem] text-base sm:text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   rows={6}
                 />
@@ -146,7 +262,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                   className="flex items-center justify-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0 self-end sm:self-auto"
                 >
                   <Send className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Posting...' : 'Comment'}</span>
+                  <span>{isSubmitting ? 'Posting...' : submitLabel}</span>
                 </button>
               </div>
             </div>
@@ -162,46 +278,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
           </div>
         ) : (
           <div className="space-y-4 p-4">
-            {comments.map((comment) => (
-              <div key={comment.id} className="flex space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-secondary-500 to-accent-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className="font-medium text-neutral-900 text-sm">
-                      {comment.authorName}
-                    </span>
-                    <div className="flex items-center space-x-1 text-xs text-neutral-500">
-                      <Clock className="w-3 h-3" />
-                      <span>
-                        {formatDistanceToNow(
-                          comment.createdAt instanceof Date ? comment.createdAt : new Date(comment.createdAt),
-                          { addSuffix: true }
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="prose prose-sm max-w-none text-neutral-700 leading-relaxed">
-                    <CommentBody content={comment.content} />
-                  </div>
-                  <div className="flex items-center space-x-4 mt-2">
-                    <button
-                      type="button"
-                      onClick={() => handleLikeComment(comment.id)}
-                      className={`flex items-center space-x-1 text-xs transition-colors ${
-                        user && comment.likedBy.includes(user.id)
-                          ? 'text-error-600'
-                          : 'text-neutral-500 hover:text-error-600'
-                      }`}
-                    >
-                      <Heart className="w-3 h-3" />
-                      <span>{comment.likes}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+            {rootComments.map((comment) => renderComment(comment))}
           </div>
         )}
       </div>

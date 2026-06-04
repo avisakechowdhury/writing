@@ -3,14 +3,12 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { 
   PenTool, 
-  Users, 
-  Target, 
-  Flame, 
-  Star, 
+  Users,
   ArrowRight,
+  ShieldCheck,
+  Sparkles,
   Heart,
-  MessageCircle,
-  TrendingUp
+  MessageCircle
 } from 'lucide-react';
 import AuthModal from '../components/Auth/AuthModal';
 
@@ -30,61 +28,40 @@ const Landing: React.FC = () => {
 
   const features = [
     {
-      icon: PenTool,
-      title: 'Express Yourself',
-      description: 'Write freely with our rich-text editor. Share anonymously or publicly - your choice.',
-      color: 'from-primary-500 to-primary-600'
+      icon: ShieldCheck,
+      title: 'Safe, private expression',
+      description: 'Use WriteAnon as an anonymous journal online and a private digital diary for your real thoughts.',
+      color: 'from-primary-500 to-secondary-500'
     },
     {
       icon: Users,
-      title: 'Supportive Community',
-      description: 'Connect with fellow writers. Get encouragement, share experiences, and grow together.',
-      color: 'from-secondary-500 to-secondary-600'
+      title: 'Supportive writing community',
+      description: 'Share thoughts anonymously with others and find an interest-based anonymous writing community.',
+      color: 'from-secondary-500 to-accent-500'
     },
     {
-      icon: Target,
-      title: 'Build Habits',
-      description: 'Track your writing streaks, earn points, and unlock achievements as you write daily.',
-      color: 'from-accent-500 to-accent-600'
+      icon: PenTool,
+      title: 'Daily writing habit',
+      description: 'Build a mindfulness writing routine with daily reflection prompts and habit-based reminders.',
+      color: 'from-accent-500 to-primary-500'
     },
     {
-      icon: Flame,
-      title: 'Stay Motivated',
-      description: 'Daily reminders, streak tracking, and rewards keep you motivated to write every day.',
-      color: 'from-error-500 to-error-600'
-    }
-  ];
-
-  const testimonials = [
-    {
-      name: 'Sarah Chen',
-      role: 'Marketing Manager',
-      content: 'This app helped me overcome my fear of writing. The supportive community makes all the difference.',
-      avatar: '👩‍💼'
-    },
-    {
-      name: 'Mike Rodriguez',
-      role: 'Student',
-      content: 'I never thought I could write daily. The streak system is addictive in the best way possible!',
-      avatar: '👨‍🎓'
-    },
-    {
-      name: 'Emily Watson',
-      role: 'Teacher',
-      content: 'The anonymous sharing feature gave me the confidence to share my thoughts without judgment.',
-      avatar: '👩‍🏫'
+      icon: Heart,
+      title: 'Mental wellness support',
+      description: 'A daily mental health journal flow designed for emotional release, anxiety relief, and reflection.',
+      color: 'from-primary-600 to-secondary-600'
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50/60 via-white to-violet-50/50">
       <Helmet>
-        <title>WriteAnon — Mental Health Writing Platform | Anonymous Journal & Random Chat</title>
-        <meta name="description" content="Express yourself through anonymous writing for mental health support. Share thoughts anonymously, journal daily, chat with random users like Omegle. Safe space for mental wellness, anxiety relief, and emotional expression. Join thousands sharing their stories." />
-        <meta name="keywords" content="mental health writing, anonymous journal, anonymous writing platform, mental health support, express yourself anonymously, random chat, omegle alternative, anonymous thoughts, mental wellness, anxiety journal, depression support, emotional writing, anonymous blog, share thoughts anonymously, mental health community, writing therapy, anonymous mental health, safe space writing, random chat mental health, anonymous expression" />
+        <title>WriteAnon | Your Anonymous Journal for Expressive Writing & Mental Health</title>
+        <meta name="description" content="WriteAnon is an expressive writing platform for mental wellbeing: write anonymously online, keep a private digital diary, build a daily writing habit, and process emotions through writing in a safe space." />
+        <meta name="keywords" content="anonymous journal online, private digital diary, expressive writing platform, daily mental health journal, write anonymously online, journaling for mental health, venting feelings anonymously, safe space to vent anonymously, daily reflection journal prompts, expressive writing therapy exercises, anonymous writing community" />
         <link rel="canonical" href="https://writeanon.in/landing" />
-        <meta property="og:title" content="WriteAnon — Mental Health Writing Platform | Anonymous Journal & Random Chat" />
-        <meta property="og:description" content="Express yourself through anonymous writing for mental health support. Share thoughts anonymously, journal daily, chat with random users. Safe space for mental wellness." />
+        <meta property="og:title" content="WriteAnon | Anonymous Journal for Mental Wellness" />
+        <meta property="og:description" content="Express yourself freely online with anonymous journaling, daily writing routines, and a supportive writing community." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://writeanon.in/landing" />
         <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
@@ -128,24 +105,33 @@ const Landing: React.FC = () => {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center">
-            <h1 className="text-5xl lg:text-6xl font-bold text-neutral-900 mb-6 leading-tight">
-              Overcome Your Fear of
-              <span className="block bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
-                Writing
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-12 left-[10%] h-52 w-52 rounded-full bg-primary-200/50 blur-3xl" />
+          <div className="absolute top-24 right-[12%] h-60 w-60 rounded-full bg-secondary-200/40 blur-3xl" />
+          <div className="absolute bottom-4 left-[35%] h-56 w-56 rounded-full bg-violet-200/40 blur-3xl" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+          <div className="text-center max-w-4xl mx-auto">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-white/90 px-4 py-1.5 text-sm text-primary-700 mb-5">
+              <Sparkles className="w-4 h-4" />
+              <span>Anonymous writing for mental wellbeing</span>
+            </div>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 mb-6 leading-tight">
+              A safe space to
+              <span className="block bg-gradient-to-r from-primary-600 via-secondary-600 to-primary-500 bg-clip-text text-transparent">
+                express, reflect, and heal
               </span>
             </h1>
             <p className="text-xl sm:text-2xl text-primary-600 font-medium italic mb-4">
               Your story. Your secret.
             </p>
-            <p className="text-xl text-neutral-600 mb-4 max-w-3xl mx-auto leading-relaxed">
-              Join a supportive community of writers. Share your thoughts anonymously or publicly, 
-              build daily writing habits, and discover the joy of expression without judgment.
+            <p className="text-lg sm:text-xl text-neutral-600 mb-6 max-w-3xl mx-auto leading-relaxed">
+              WriteAnon blends a private digital diary, expressive writing therapy exercises, and an
+              interest-based anonymous writing community so you can process emotions through writing.
             </p>
-            <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-2xl mx-auto">
+            <div className="mb-8 p-4 bg-indigo-50 border border-indigo-200 rounded-xl max-w-2xl mx-auto">
               <p className="text-blue-800 font-medium">
-                Please login to write posts, like content, or comment on stories.
+                Please sign in to write posts, react, comment, and save your journaling routine.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -160,38 +146,30 @@ const Landing: React.FC = () => {
                 to="/"
                 className="px-8 py-4 border-2 border-neutral-300 text-neutral-700 font-semibold rounded-xl hover:border-neutral-400 hover:bg-neutral-50 transition-all duration-200 flex items-center justify-center space-x-2"
               >
-                <span>Read Posts</span>
+                <span>Explore Community Posts</span>
                 <MessageCircle className="w-5 h-5" />
               </Link>
             </div>
           </div>
         </div>
-        
-        {/* Background decoration */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-          <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-secondary-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000"></div>
-          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-accent-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-2000"></div>
-        </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-neutral-900 mb-4">
-              Everything You Need to Start Writing
+              Designed for daily reflection
             </h2>
             <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
-              Our platform combines the best of journaling, social interaction, and habit building
-              to help you develop a consistent writing practice.
+              From anxiety relief journaling to mindful writing habits, everything is built to feel calm and supportive.
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
               <div key={index} className="group">
-                <div className="bg-neutral-50 rounded-2xl p-8 h-full hover:bg-white hover:shadow-soft transition-all duration-300 border border-neutral-200">
+                <div className="bg-white rounded-2xl p-8 h-full hover:shadow-soft transition-all duration-300 border border-neutral-200">
                   <div className={`w-12 h-12 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
                     <feature.icon className="w-6 h-6 text-white" />
                   </div>
@@ -209,17 +187,16 @@ const Landing: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-primary-500 to-secondary-600">
+      <section className="py-20 bg-gradient-to-r from-primary-600 via-secondary-600 to-violet-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold text-white mb-6">
-            Ready to Start Your Writing Journey?
+            Where can you write your thoughts safely online?
           </h2>
           <p className="text-2xl text-primary-100 font-medium italic mb-4">
-            Your story. Your secret.
+            Right here, on WriteAnon.
           </p>
           <p className="text-xl text-primary-100 mb-8 leading-relaxed">
-            Join our community today and discover the writer within you. 
-            Start with just a few words, and watch your confidence grow.
+            Start with a few words, vent feelings anonymously, and build a daily writing habit that supports mental wellbeing.
           </p>
           <button
             onClick={handleGetStarted}
