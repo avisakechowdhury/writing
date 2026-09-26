@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { 
   User, 
   Flame, 
@@ -6,35 +6,23 @@ import {
   Camera,
   MessageCircle,
   Heart,
-  TrendingUp
+  TrendingUp,
+  Loader2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { usePosts } from '../hooks/usePosts';
+import { useMyPosts } from '../hooks/useMyPosts';
 import PostCard from '../components/Post/PostCard';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
-  const { posts, likePost, addComment, likeComment } = usePosts();
-  const [visiblePostsCount, setVisiblePostsCount] = useState(5);
-  const userId = user?.id ?? '';
-
-  const userPosts = useMemo(
-    () =>
-      posts
-        .filter(post => post.authorId === userId)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-    [posts, userId]
-  );
-  const visiblePosts = userPosts.slice(0, visiblePostsCount);
-  const hasMorePosts = visiblePostsCount < userPosts.length;
+  const { likePost, addComment, likeComment } = usePosts();
+  const { posts: userPosts, isLoading, isLoadingMore, hasMore, loadMore } = useMyPosts();
 
   if (!user) return null;
   
-  // Calculate total likes received on user's posts
   const totalLikesReceived = userPosts.reduce((sum, post) => sum + post.likes, 0);
-  
-  // Calculate total comments received on user's posts
   const totalCommentsReceived = userPosts.reduce((sum, post) => sum + post.comments.length, 0);
 
   const handleLike = (postId: string) => {
@@ -46,7 +34,6 @@ const Profile: React.FC = () => {
   };
 
   const handleLikeComment = (postId: string, commentId: string) => {
-    if (!user) return;
     likeComment(postId, commentId, user.id);
   };
 
@@ -117,7 +104,6 @@ const Profile: React.FC = () => {
               </div>
             </div>
             
-            {/* Quick Actions */}
             <div className="mt-6 pt-6 border-t border-neutral-200">
               <Link
                 to="/settings"
@@ -134,7 +120,11 @@ const Profile: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-soft border border-neutral-200 p-6">
           <h2 className="text-xl font-semibold text-neutral-900 mb-6">Your Posts</h2>
           
-          {userPosts.length === 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+            </div>
+          ) : userPosts.length === 0 ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <User className="w-8 h-8 text-white" />
@@ -144,7 +134,7 @@ const Profile: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-6">
-              {visiblePosts.map(post => (
+              {userPosts.map(post => (
                 <PostCard
                   key={post.id}
                   post={post}
@@ -153,14 +143,16 @@ const Profile: React.FC = () => {
                   onLikeComment={handleLikeComment}
                 />
               ))}
-              {hasMorePosts && (
+              {hasMore && (
                 <div className="flex justify-center pt-2">
                   <button
                     type="button"
-                    onClick={() => setVisiblePostsCount(prev => prev + 5)}
-                    className="px-5 py-2.5 border border-neutral-300 text-neutral-700 rounded-lg font-medium hover:bg-neutral-50 transition-colors"
+                    onClick={loadMore}
+                    disabled={isLoadingMore}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 border border-neutral-300 text-neutral-700 rounded-lg font-medium hover:bg-neutral-50 transition-colors disabled:opacity-50"
                   >
-                    Load more
+                    {isLoadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Load 5 more
                   </button>
                 </div>
               )}

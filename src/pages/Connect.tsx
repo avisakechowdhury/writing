@@ -37,12 +37,14 @@ const Connect: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
       <Helmet>
-        <title>Connect with WriteAnon — Social Links & Contact</title>
+        <title>Connect with WriteAnon — Contact, Social Links & Community</title>
         <meta
           name="description"
-          content="Connect with the WriteAnon team on Instagram, X (Twitter), email, and LinkedIn. Share feedback, report issues, or just say hello."
+          content="Connect with the WriteAnon anonymous writing community. Follow us on Instagram, X (Twitter), LinkedIn, or email us. We're building a safe space for anonymous writing and mental wellness."
         />
+        <meta name="keywords" content="WriteAnon contact, anonymous writing community, WriteAnon social, anonymous writer community" />
         <link rel="canonical" href="https://writeanon.in/connect" />
+        <meta name="robots" content="index, follow" />
       </Helmet>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">

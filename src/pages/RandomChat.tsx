@@ -95,9 +95,11 @@ const RandomChat: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Helmet>
-        <title>Random Chat for writers — Meet people, share ideas | WriteAnon</title>
-        <meta name="description" content="Connect with people around the world via anonymous random chat. Discuss books, life, technology, and more while staying safe." />
+        <title>Random Chat — Meet Writers & Talk Anonymously | WriteAnon</title>
+        <meta name="description" content="Connect with people around the world via anonymous random chat on WriteAnon. Choose topics like books, philosophy, music, or technology and meet fellow writers in a safe space." />
+        <meta name="keywords" content="anonymous random chat, chat with strangers, anonymous chat online, talk anonymously, random chat for writers, anonymous conversation" />
         <link rel="canonical" href="https://writeanon.in/random-chat" />
+        <meta name="robots" content="index, follow" />
       </Helmet>
       <div className="bg-white rounded-2xl shadow-soft border border-neutral-200 overflow-hidden">
         {/* Header */}

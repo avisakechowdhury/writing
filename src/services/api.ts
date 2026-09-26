@@ -2,10 +2,12 @@ import axios, { AxiosRequestConfig } from 'axios';
 import socketService from './socket';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://anonwriter.onrender.com/api';
+const DEFAULT_TIMEOUT_MS = 25000;
 
 // Create axios instances
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: DEFAULT_TIMEOUT_MS,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -13,10 +15,21 @@ const api = axios.create({
 
 const plainApi = axios.create({
   baseURL: API_BASE_URL,
+  timeout: DEFAULT_TIMEOUT_MS,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+const PUBLIC_PATHS = ['/', '/landing', '/connect', '/post'];
+
+const isPublicPath = () => {
+  if (typeof window === 'undefined') return true;
+  const path = window.location.pathname;
+  return PUBLIC_PATHS.some(
+    (p) => path === p || path.startsWith('/post/') || path.startsWith('/connect')
+  );
+};
 
 const clearSession = () => {
   localStorage.removeItem('auth_token');
@@ -33,7 +46,18 @@ const redirectToLanding = () => {
 const forceLogout = () => {
   clearSession();
   socketService.disconnect();
-  redirectToLanding();
+  if (!isPublicPath()) {
+    redirectToLanding();
+  }
+};
+
+/** Wake the backend on cold start (Render free tier) */
+export const pingHealth = async () => {
+  try {
+    await plainApi.get('/health', { timeout: 8000 });
+  } catch {
+    // Non-blocking — feed retry handles failures
+  }
 };
 
 let isRefreshing = false;
@@ -138,8 +162,6 @@ export const authAPI = {
   
   register: async (email: string, password: string, username: string, displayName: string) => {
     const data = { email, password, username, displayName };
-    console.log('Sending registration data:', { ...data, password: '[HIDDEN]' });
-    
     const response = await api.post('/auth/register', data);
     return response.data;
   },
@@ -206,8 +228,11 @@ export const authAPI = {
 
 // Posts API
 export const postsAPI = {
-  getPosts: async (params?: any) => {
-    const response = await api.get('/posts', { params });
+  getPosts: async (params?: any, timeoutMs?: number) => {
+    const response = await api.get('/posts', {
+      params,
+      ...(timeoutMs ? { timeout: timeoutMs } : {}),
+    });
     return response.data;
   },
   

@@ -1,35 +1,43 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Search, Filter, Plus, PenTool, Loader2 } from 'lucide-react';
+import { Search, Filter, Plus, PenTool, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PostCard from '../components/Post/PostCard';
 import PushPromptBanner from '../components/PushPromptBanner';
 import { usePosts } from '../hooks/usePosts';
 import { useAuth } from '../contexts/AuthContext';
 import { showAuthRequiredToastSimple, redirectToLanding } from '../utils/toastUtils';
+import { MOOD_FILTER_OPTIONS, MOODS } from '../constants/moods';
+import { pingHealth } from '../services/api';
 
 const Feed: React.FC = () => {
-  const { posts, isLoading, isLoadingMore, hasMore, likePost, addComment, likeComment, loadMore } = usePosts();
+  const { posts, isLoading, isLoadingMore, hasMore, loadError, likePost, addComment, likeComment, loadMore, refresh, retry } = usePosts();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMood, setSelectedMood] = useState<string>('all');
+  const skipFilterRefresh = useRef(true);
 
-  const filteredPosts = posts.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.content.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesMood = selectedMood === 'all' || post.mood === selectedMood;
-    return matchesSearch && matchesMood;
-  });
+  useEffect(() => {
+    void pingHealth();
+  }, []);
+
+  useEffect(() => {
+    if (skipFilterRefresh.current) {
+      skipFilterRefresh.current = false;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      refresh({ search: searchTerm || undefined, mood: selectedMood });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm, selectedMood]);
 
   const handleLike = (postId: string) => {
     if (!user) {
       showAuthRequiredToastSimple('like posts');
       return;
     }
-    
-    if (user) {
-      likePost(postId, user.id);
-    }
+    likePost(postId, user.id);
   };
 
   const handleComment = (postId: string, content: string, parentId?: string | null) => {
@@ -45,33 +53,39 @@ const Feed: React.FC = () => {
       redirectToLanding();
       return;
     }
-
     likeComment(postId, commentId, user.id);
   };
 
-  // Infinite scroll handler
   const handleScroll = useCallback(() => {
     if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 1000) {
-      if (hasMore && !isLoadingMore && !isLoading) {
+      if (hasMore && !isLoadingMore && !isLoading && !loadError) {
         loadMore();
       }
     }
-  }, [hasMore, isLoadingMore, isLoading, loadMore]);
+  }, [hasMore, isLoadingMore, isLoading, loadError, loadMore]);
 
   useEffect(() => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
-  const moods = ['all', 'happy', 'peaceful', 'grateful', 'anxious', 'sad'];
+  const moodLabel = (mood: string) => {
+    if (mood === 'all') return 'All Moods';
+    const found = MOODS.find((m) => m.value === mood);
+    return found ? `${found.emoji} ${found.label}` : mood.charAt(0).toUpperCase() + mood.slice(1);
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Helmet>
-        <title>WriteAnon (Write Anon) — Anonymous Journal, Mental Health Stories & Daily Writing</title>
-        <meta name="description" content="Explore WriteAnon mental health stories and anonymous posts. Write anonymously online, keep a daily reflection journal, and express your thoughts safely in a supportive community." />
-        <meta name="keywords" content="write anon, write anonymous, anonymous journal online, mental health stories, write anonymously online, daily mental health journal, journaling for mental health, safe space for daily thoughts, expressive writing platform, online journal for anxiety relief" />
+        <title>WriteAnon — Read & Write Anonymous Stories, Journal Entries & Mental Health Posts</title>
+        <meta name="description" content="Explore anonymous stories, mental health journal entries, and thoughtful posts on WriteAnon. Write anonymously, publish your own stories, and join a supportive anonymous writing community. Free and private." />
+        <meta name="keywords" content="anonymous writing, anonymous writer, anonymous stories, anon writer, anon stories, write anonymously, publish anonymously online, anonymous journal, mental health stories, anonymous posting site, write your thoughts online, daily mental health journal, anonymous writing website" />
         <link rel="canonical" href="https://writeanon.in/" />
+        <meta property="og:title" content="WriteAnon — Anonymous Stories & Mental Health Writing" />
+        <meta property="og:description" content="Read and write anonymous stories, journal entries, and mental health posts. Free and private." />
+        <meta property="og:url" content="https://writeanon.in/" />
+        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
       </Helmet>
       <PushPromptBanner />
       {/* Header */}
@@ -116,17 +130,36 @@ const Feed: React.FC = () => {
             <select
               value={selectedMood}
               onChange={(e) => setSelectedMood(e.target.value)}
-              className="pl-10 pr-8 py-3 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white"
+              className="pl-10 pr-8 py-3 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white min-w-[160px]"
             >
-              {moods.map(mood => (
+              {MOOD_FILTER_OPTIONS.map(mood => (
                 <option key={mood} value={mood}>
-                  {mood === 'all' ? 'All Moods' : mood.charAt(0).toUpperCase() + mood.slice(1)}
+                  {moodLabel(mood)}
                 </option>
               ))}
             </select>
           </div>
         </div>
       </div>
+
+      {/* Error state */}
+      {loadError && !isLoading && posts.length === 0 && (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-amber-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-neutral-900 mb-2">Having trouble loading</h3>
+          <p className="text-neutral-600 mb-6 max-w-md mx-auto">{loadError}</p>
+          <button
+            type="button"
+            onClick={retry}
+            className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold rounded-xl hover:from-primary-600 hover:to-secondary-600 transition-all duration-200"
+          >
+            <RefreshCw className="w-5 h-5" />
+            <span>Try again</span>
+          </button>
+        </div>
+      )}
 
       {/* Posts */}
       {isLoading ? (
@@ -153,7 +186,7 @@ const Feed: React.FC = () => {
             </div>
           ))}
         </div>
-      ) : filteredPosts.length === 0 ? (
+      ) : !loadError && posts.length === 0 ? (
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <Search className="w-8 h-8 text-white" />
@@ -173,9 +206,9 @@ const Feed: React.FC = () => {
             <span>Write Your First Post</span>
           </Link>
         </div>
-      ) : (
+      ) : !loadError ? (
         <div className="space-y-6">
-          {filteredPosts.map(post => (
+          {posts.map(post => (
             <PostCard
               key={post.id}
               post={post}
@@ -185,7 +218,6 @@ const Feed: React.FC = () => {
             />
           ))}
           
-          {/* Infinite scroll loading indicator */}
           {isLoadingMore && (
             <div className="flex justify-center py-8">
               <div className="flex items-center space-x-2 text-neutral-600">
@@ -195,8 +227,7 @@ const Feed: React.FC = () => {
             </div>
           )}
           
-          {/* End of posts indicator */}
-          {!hasMore && filteredPosts.length > 0 && (
+          {!hasMore && posts.length > 0 && (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <PenTool className="w-8 h-8 text-white" />
@@ -215,7 +246,7 @@ const Feed: React.FC = () => {
             </div>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

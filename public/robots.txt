@@ -1,23 +1,30 @@
+# WriteAnon robots.txt
+# https://writeanon.in
+
 User-agent: *
 Allow: /
 Allow: /landing
 Allow: /write
-Allow: /post/*
+Allow: /post/
 Allow: /connect
+Allow: /random-chat
 
-# Disallow private routes
+# Disallow private/authenticated-only routes
 Disallow: /messages
+Disallow: /messages/
 Disallow: /settings
 Disallow: /dashboard
 Disallow: /profile
+Disallow: /profile/
+Disallow: /notifications
 Disallow: /reset-password
 
-# Allow random-chat and connect for SEO (public routes)
-Allow: /random-chat
+# Block common non-content paths
+Disallow: /api/
+Disallow: /assets/
 
-# Crawl-delay for respectful crawling
-Crawl-delay: 1
-
+# Sitemap (served dynamically from backend with fresh post URLs)
 Sitemap: https://writeanon.in/sitemap.xml
 
-
+# Host directive (canonical domain)
+Host: https://writeanon.in

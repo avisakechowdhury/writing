@@ -17,7 +17,7 @@ export const useAuthService = () => {
       const token = localStorage.getItem('auth_token');
       const storedUser = localStorage.getItem('user_data');
 
-      if (storedUser && !user) {
+      if (storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser);
           setUser({
@@ -34,7 +34,11 @@ export const useAuthService = () => {
         return;
       }
 
-      const response = await authAPI.getMe();
+      const authTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Auth timeout')), 10000)
+      );
+
+      const response = await Promise.race([authAPI.getMe(), authTimeout]);
       const userData = {
         ...response.user,
         joinedDate: new Date(response.user.joinedDate)
@@ -49,14 +53,17 @@ export const useAuthService = () => {
       } else {
         socketService.updateAuthToken(token);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auth check failed:', error);
-      if (error.response?.status === 401) {
+      if (error?.response?.status === 401) {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user_data');
+        setUser(null);
         socketService.disconnect();
-        toast.error('Session expired. Please login again.');
+      } else if (error?.message === 'Auth timeout') {
+        // Keep cached user; server may be waking up — don't block the app
+        console.warn('Auth check timed out; using cached session if available');
       }
     } finally {
       setIsLoading(false);

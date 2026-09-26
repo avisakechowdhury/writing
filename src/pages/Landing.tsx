@@ -8,13 +8,19 @@ import {
   ShieldCheck,
   Sparkles,
   Heart,
-  MessageCircle
+  MessageCircle,
+  BookOpen,
+  Lock,
+  Globe,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import AuthModal from '../components/Auth/AuthModal';
 
 const Landing: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const handleGetStarted = () => {
     setAuthMode('signup');
@@ -53,19 +59,98 @@ const Landing: React.FC = () => {
     }
   ];
 
+  const howItWorks = [
+    {
+      icon: BookOpen,
+      step: '1',
+      title: 'Sign up in seconds',
+      description: 'Create a free account. No real name required — choose any display name you like.'
+    },
+    {
+      icon: PenTool,
+      step: '2',
+      title: 'Write your thoughts',
+      description: 'Use the rich text editor to write posts, journal entries, or stories. Post anonymously or with your username.'
+    },
+    {
+      icon: Globe,
+      step: '3',
+      title: 'Share with the community',
+      description: 'Your post appears in the public feed where others can read, like, and comment — all in a supportive space.'
+    },
+    {
+      icon: Lock,
+      step: '4',
+      title: 'Stay anonymous & safe',
+      description: 'Your privacy is always protected. Write anonymously, connect via random chat, and express freely.'
+    }
+  ];
+
+  const faqs = [
+    {
+      question: 'What is WriteAnon?',
+      answer: 'WriteAnon is a free anonymous writing platform designed for mental wellness. You can write journal entries, share stories, and express your thoughts without revealing your identity. It combines an anonymous journal, a writing community, and random chat features.'
+    },
+    {
+      question: 'Is WriteAnon completely free?',
+      answer: 'Yes, WriteAnon is 100% free to use. You can create an account, write unlimited posts, use random chat, and engage with the community at no cost.'
+    },
+    {
+      question: 'Can I write anonymously on WriteAnon?',
+      answer: 'Absolutely. When creating a post, you can toggle the "Post anonymously" option to hide your username. Your identity remains private, and only you know you wrote the post.'
+    },
+    {
+      question: 'Where can I write my thoughts online anonymously?',
+      answer: 'WriteAnon is the perfect place. Unlike social media, WriteAnon is built specifically for anonymous expression and mental wellness. You can write journal entries, vent feelings, or share stories — all without revealing who you are.'
+    },
+    {
+      question: 'How does random chat work on WriteAnon?',
+      answer: 'Random chat connects you with another user based on a shared topic of interest (books, music, technology, philosophy, etc.). The chat is anonymous and the history is not permanently stored, keeping your conversations private.'
+    },
+    {
+      question: 'Is my data safe on WriteAnon?',
+      answer: 'We take privacy seriously. Anonymous posts cannot be traced back to your account by other users. We use encrypted connections and do not sell or share your personal data.'
+    },
+    {
+      question: 'Can I use WriteAnon for journaling and mental health?',
+      answer: 'Yes — WriteAnon is designed as a daily mental health journal. Writing regularly has been shown to help with anxiety relief, emotional processing, and self-reflection. Features like streak tracking help you build a consistent writing habit.'
+    }
+  ];
+
+  // FAQ schema for structured data
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answer
+      }
+    }))
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50/60 via-white to-violet-50/50">
       <Helmet>
-        <title>WriteAnon | Your Anonymous Journal for Expressive Writing & Mental Health</title>
-        <meta name="description" content="WriteAnon is an expressive writing platform for mental wellbeing: write anonymously online, keep a private digital diary, build a daily writing habit, and process emotions through writing in a safe space." />
-        <meta name="keywords" content="anonymous journal online, private digital diary, expressive writing platform, daily mental health journal, write anonymously online, journaling for mental health, venting feelings anonymously, safe space to vent anonymously, daily reflection journal prompts, expressive writing therapy exercises, anonymous writing community" />
+        <title>WriteAnon — Free Anonymous Writing Platform for Mental Wellness & Journaling</title>
+        <meta name="description" content="WriteAnon is a free anonymous writing platform for mental wellness. Write anonymously online, keep a private digital diary, journal for mental health, share stories, and connect with others in a safe space." />
+        <meta name="keywords" content="anonymous writing, anonymous journal online, write anonymously, anonymous writer, anonymous writing website, anonymous writing platform, private digital diary, daily mental health journal, journaling for mental health, write your thoughts online, where can I write my thoughts online, anonymous posting site, publish anonymously online, anon writer, expressive writing, safe space to vent anonymously" />
         <link rel="canonical" href="https://writeanon.in/landing" />
-        <meta property="og:title" content="WriteAnon | Anonymous Journal for Mental Wellness" />
-        <meta property="og:description" content="Express yourself freely online with anonymous journaling, daily writing routines, and a supportive writing community." />
+        <meta property="og:title" content="WriteAnon — Free Anonymous Writing Platform for Mental Wellness" />
+        <meta property="og:description" content="Write anonymously online, journal for mental health, and express yourself freely in a safe anonymous writing community." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://writeanon.in/landing" />
-        <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+        <meta property="og:image" content="https://writeanon.in/assets/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="WriteAnon — Anonymous Writing Platform" />
+        <meta name="twitter:description" content="Free anonymous writing for mental wellness. Journal privately, share stories, and connect." />
+        <meta name="twitter:image" content="https://writeanon.in/assets/og-image.png" />
+        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+        <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
       </Helmet>
+
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-lg border-b border-neutral-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -114,20 +199,21 @@ const Landing: React.FC = () => {
           <div className="text-center max-w-4xl mx-auto">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-white/90 px-4 py-1.5 text-sm text-primary-700 mb-5">
               <Sparkles className="w-4 h-4" />
-              <span>Anonymous writing for mental wellbeing</span>
+              <span>Free anonymous writing for mental wellbeing</span>
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 mb-6 leading-tight">
-              A safe space to
+              Write anonymously.
               <span className="block bg-gradient-to-r from-primary-600 via-secondary-600 to-primary-500 bg-clip-text text-transparent">
-                express, reflect, and heal
+                Express, reflect, and heal.
               </span>
             </h1>
             <p className="text-xl sm:text-2xl text-primary-600 font-medium italic mb-4">
               Your story. Your secret.
             </p>
             <p className="text-lg sm:text-xl text-neutral-600 mb-6 max-w-3xl mx-auto leading-relaxed">
-              WriteAnon blends a private digital diary, expressive writing therapy exercises, and an
-              interest-based anonymous writing community so you can process emotions through writing.
+              WriteAnon is a free anonymous writing platform that blends a private digital diary,
+              expressive writing therapy, and an anonymous writing community so you can process
+              emotions through writing — safely and freely.
             </p>
             <div className="mb-8 p-4 bg-indigo-50 border border-indigo-200 rounded-xl max-w-2xl mx-auto">
               <p className="text-blue-800 font-medium">
@@ -139,7 +225,7 @@ const Landing: React.FC = () => {
                 onClick={handleGetStarted}
                 className="px-8 py-4 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold rounded-xl hover:from-primary-600 hover:to-secondary-600 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
               >
-                <span>Start Writing Today</span>
+                <span>Start Writing Anonymously — Free</span>
                 <ArrowRight className="w-5 h-5" />
               </button>
               <Link
@@ -186,6 +272,72 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
+      {/* How It Works Section */}
+      <section className="py-20 bg-gradient-to-b from-neutral-50 to-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-neutral-900 mb-4">
+              How it works
+            </h2>
+            <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
+              Start writing anonymously in under a minute. No real name needed.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {howItWorks.map((item, index) => (
+              <div key={index} className="flex items-start space-x-4 p-6 rounded-xl bg-white border border-neutral-200 hover:shadow-soft transition-all duration-300">
+                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  {item.step}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-neutral-900 mb-2">{item.title}</h3>
+                  <p className="text-neutral-600 leading-relaxed">{item.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section — provides content for long-tail queries and FAQ rich snippets */}
+      <section className="py-20 bg-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-neutral-900 mb-4">
+              Frequently asked questions
+            </h2>
+            <p className="text-xl text-neutral-600">
+              Everything you need to know about WriteAnon
+            </p>
+          </div>
+          <div className="space-y-4">
+            {faqs.map((faq, index) => (
+              <div
+                key={index}
+                className="border border-neutral-200 rounded-xl overflow-hidden"
+              >
+                <button
+                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                  className="w-full flex items-center justify-between p-5 text-left bg-white hover:bg-neutral-50 transition-colors"
+                >
+                  <h3 className="text-lg font-semibold text-neutral-900 pr-4">{faq.question}</h3>
+                  {openFaq === index ? (
+                    <ChevronUp className="w-5 h-5 text-neutral-500 flex-shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-neutral-500 flex-shrink-0" />
+                  )}
+                </button>
+                {openFaq === index && (
+                  <div className="px-5 pb-5">
+                    <p className="text-neutral-600 leading-relaxed">{faq.answer}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-primary-600 via-secondary-600 to-violet-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -196,7 +348,7 @@ const Landing: React.FC = () => {
             Right here, on WriteAnon.
           </p>
           <p className="text-xl text-primary-100 mb-8 leading-relaxed">
-            Start with a few words, vent feelings anonymously, and build a daily writing habit that supports mental wellbeing.
+            Start with a few words, vent feelings anonymously, and build a daily writing habit that supports mental wellbeing. It's free, private, and always here for you.
           </p>
           <button
             onClick={handleGetStarted}
@@ -222,7 +374,7 @@ const Landing: React.FC = () => {
               </div>
             </div>
             <div className="text-center md:text-right">
-              <p>&copy; 2025 WriteAnon. All rights reserved.</p>
+              <p>&copy; {new Date().getFullYear()} WriteAnon. All rights reserved.</p>
               <p className="text-sm mt-1">Made with ❤️ for writers who value privacy</p>
             </div>
           </div>

@@ -19,7 +19,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { format, formatDistanceToNow } from 'date-fns';
 import CommentSection from './CommentSection';
 import ReportModal from '../ReportModal';
-import toast from 'react-hot-toast';
+import ShareModal from '../Share/ShareModal';
+import { stripHtml } from '../../utils/textUtils';
 import { showAuthRequiredToastSimple } from '../../utils/toastUtils';
 
 interface PostCardProps {
@@ -34,6 +35,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment, onLikeComm
   const [showComments, setShowComments] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
@@ -72,29 +74,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment, onLikeComm
     onLike(post.id);
   };
 
-  const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/post/${post.id}`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: post.title,
-          text: `Check out this post: ${post.title}`,
-          url: shareUrl
-        });
-      } catch (err) {
-        console.log('Error sharing:', err);
-      }
-    } else {
-      // Fallback to copying to clipboard
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        toast.success('Link copied to clipboard!');
-      } catch (err) {
-        console.error('Failed to copy link:', err);
-        toast.error('Failed to copy link');
-      }
-    }
+  const handleShare = () => {
+    setShowShareModal(true);
   };
 
   const getMoodColor = (mood?: string) => {
@@ -104,17 +85,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment, onLikeComm
       case 'anxious': return 'bg-warning-100 text-warning-700';
       case 'grateful': return 'bg-secondary-100 text-secondary-700';
       case 'peaceful': return 'bg-accent-100 text-accent-700';
+      case 'excited': return 'bg-orange-100 text-orange-700';
+      case 'thoughtful': return 'bg-indigo-100 text-indigo-700';
+      case 'frustrated': return 'bg-red-100 text-red-700';
       default: return 'bg-neutral-100 text-neutral-700';
     }
   };
 
-  const stripHtml = (html: string) => {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
-  };
+  const stripHtmlLocal = (html: string) => stripHtml(html);
 
-  const shouldShowReadMore = stripHtml(post.content).length > 200;
+  const shouldShowReadMore = stripHtmlLocal(post.content).length > 200;
 
   // Profile link component
   const ProfileLink = ({ children }: { children: React.ReactNode }) => {
@@ -349,6 +329,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment, onLikeComm
         reportedItemType="post"
         reportedItemId={post.id}
         reportedItemTitle={post.title}
+      />
+
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        postId={post.id}
+        title={post.title}
+        content={post.content}
+        mood={post.mood}
+        authorName={post.isAnonymous ? 'Anonymous' : post.authorName}
       />
     </div>
   );

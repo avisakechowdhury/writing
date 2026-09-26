@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Save, Eye, EyeOff, Clock } from 'lucide-react';
 import RichTextEditor from '../components/Editor/RichTextEditor';
 import { useAuth } from '../contexts/AuthContext';
@@ -291,6 +292,13 @@ const Write: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Helmet>
+        <title>Write Anonymously — Share Your Story on WriteAnon</title>
+        <meta name="description" content="Write anonymously and share your story with a supportive community. Use WriteAnon's rich text editor to journal your thoughts, express emotions, and publish anonymously online. Free and private." />
+        <meta name="keywords" content="write anonymously, anonymous writing, publish anonymously online, anonymous writer, share your thoughts online, write your thoughts online, anonymous journal, write anon" />
+        <link rel="canonical" href="https://writeanon.in/write" />
+        <meta name="robots" content="index, follow" />
+      </Helmet>
       <div className="bg-white rounded-2xl shadow-soft border border-neutral-200 overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b border-neutral-200 bg-gradient-to-r from-primary-50 to-secondary-50">
