@@ -42,7 +42,10 @@ const Navbar: React.FC = () => {
   ];
 
   React.useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
     let mounted = true;
     const loadUnread = async () => {
       try {
@@ -73,24 +76,26 @@ const Navbar: React.FC = () => {
     };
   }, [user, location.pathname]);
 
-  if (!user) return null;
-
-  // Escape to close
+  // Escape to close — must stay above any early return so hook order is stable
   React.useEffect(() => {
+    if (!user) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setShowMobileMenu(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [user]);
 
   // Prevent body scroll when menu open
   React.useEffect(() => {
+    if (!user) return;
     document.body.style.overflow = showMobileMenu ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [showMobileMenu]);
+  }, [showMobileMenu, user]);
+
+  if (!user) return null;
 
   return (
     <>

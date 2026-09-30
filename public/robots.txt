@@ -19,9 +19,8 @@ Disallow: /profile/
 Disallow: /notifications
 Disallow: /reset-password
 
-# Block common non-content paths
+# Block API endpoints from indexing
 Disallow: /api/
-Disallow: /assets/
 
 # Sitemap (served dynamically from backend with fresh post URLs)
 Sitemap: https://writeanon.in/sitemap.xml

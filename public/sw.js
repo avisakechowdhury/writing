@@ -21,7 +21,17 @@ self.addEventListener('push', (event) => {
     icon: resolveAssetUrl(payload.icon),
     badge: resolveAssetUrl(payload.badge),
     tag: tag || undefined,
-    renotify: false,
+    // renotify: true ensures the user sees the notification even if the
+    // same tag is reused (prevents silent replacement that Chrome may flag)
+    renotify: Boolean(tag),
+    // Include timestamp so Chrome can order notifications properly
+    timestamp: payload.timestamp || Date.now(),
+    // requireInteraction keeps the notification visible for important messages
+    requireInteraction: payload.requireInteraction || false,
+    // Actions give users quick interaction options — Chrome ranks these higher
+    actions: Array.isArray(payload.actions) ? payload.actions.slice(0, 2) : [],
+    // Don't play sound for non-critical notifications to avoid spam perception
+    silent: payload.data?.type === 'reminder',
     data: payload.data || { url: '/' }
   };
 
@@ -30,13 +40,27 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+
+  const action = event.action;
+  const data = event.notification.data || {};
+
+  // If user clicked "dismiss" action, just close — don't navigate
+  if (action === 'dismiss') return;
+
+  const targetUrl = data.url || '/';
   const absoluteUrl = targetUrl.startsWith('http')
     ? targetUrl
     : new URL(targetUrl, self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // Try to focus an existing window first
+      for (const client of windowClients) {
+        if (client.url === absoluteUrl && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // If no matching window, navigate an existing one or open new
       for (const client of windowClients) {
         if ('focus' in client) {
           client.navigate(absoluteUrl);
@@ -49,4 +73,9 @@ self.addEventListener('notificationclick', (event) => {
       return null;
     })
   );
+});
+
+// Track notification close events for analytics / future spam tuning
+self.addEventListener('notificationclose', (event) => {
+  // Intentionally empty — can be used for analytics later
 });

@@ -4,8 +4,20 @@ import { getPushBadgeUrl, getPushIconUrl } from '../config/push.js';
 
 const vapidEmail = process.env.VAPID_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@writeanon.in';
 
-const pushCooldownMs = 60 * 1000;
+// Cooldown matches the cron interval (5 min) to prevent duplicate push bursts
+// that trigger Chrome's spam heuristic.
+const pushCooldownMs = 5 * 60 * 1000;
 const recentPushByUser = new Map();
+
+// Periodically prune expired entries to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, timestamp] of recentPushByUser) {
+    if (now - timestamp > pushCooldownMs * 2) {
+      recentPushByUser.delete(key);
+    }
+  }
+}, 10 * 60 * 1000); // Run every 10 minutes
 
 // Configure web push if VAPID keys are available
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {

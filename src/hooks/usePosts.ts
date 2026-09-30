@@ -80,9 +80,10 @@ export const usePosts = () => {
     } catch (error: any) {
       console.error('Error loading posts:', error);
       const isTimeout = error.code === 'ECONNABORTED';
-      const message = isTimeout
+      const serverMessage = error.response?.data?.message;
+      const message = serverMessage || (isTimeout
         ? 'The server is waking up. Please try again in a moment.'
-        : 'Failed to load posts. Please check your connection.';
+        : 'Failed to load posts. Please check your connection.');
       setLoadError(message);
       if (pageNum === 1) {
         toast.error(message);

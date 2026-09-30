@@ -75,12 +75,12 @@ router.get('/', async (req, res) => {
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       contentEditedAt: post.contentEditedAt || null,
-      likes: post.likes,
-      likedBy: post.likedBy.map(id => id.toString()),
-      comments: post.comments.map((comment) => transformComment(post, comment)),
-      tags: post.tags,
+      likes: post.likes || 0,
+      likedBy: (post.likedBy || []).map(id => id.toString()),
+      comments: (post.comments || []).map((comment) => transformComment(post, comment)).filter(Boolean),
+      tags: post.tags || [],
       mood: post.mood,
-      wordCount: post.wordCount
+      wordCount: post.wordCount || 0
     }));
     
     const total = await Post.countDocuments(query);
@@ -141,12 +141,12 @@ router.get('/:id', async (req, res) => {
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       contentEditedAt: post.contentEditedAt || null,
-      likes: post.likes,
-      likedBy: post.likedBy.map(id => id.toString()),
-      comments: post.comments.map((comment) => transformComment(post, comment)),
-      tags: post.tags,
+      likes: post.likes || 0,
+      likedBy: (post.likedBy || []).map(id => id.toString()),
+      comments: (post.comments || []).map((comment) => transformComment(post, comment)).filter(Boolean),
+      tags: post.tags || [],
       mood: post.mood,
-      wordCount: post.wordCount
+      wordCount: post.wordCount || 0
     };
     
     res.json({ post: transformedPost });
@@ -219,12 +219,12 @@ router.put('/:id', authenticate, [
       createdAt: populated.createdAt,
       updatedAt: populated.updatedAt,
       contentEditedAt: populated.contentEditedAt || null,
-      likes: populated.likes,
-      likedBy: populated.likedBy.map((uid) => uid.toString()),
-      comments: populated.comments.map((comment) => transformComment(populated, comment)),
-      tags: populated.tags,
+      likes: populated.likes || 0,
+      likedBy: (populated.likedBy || []).map((uid) => uid.toString()),
+      comments: (populated.comments || []).map((comment) => transformComment(populated, comment)).filter(Boolean),
+      tags: populated.tags || [],
       mood: populated.mood,
-      wordCount: populated.wordCount
+      wordCount: populated.wordCount || 0
     };
 
     res.json({
@@ -346,17 +346,17 @@ router.post('/:id/like', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    const userId = req.user._id;
-    const isLiked = post.likedBy.includes(userId);
+    post.likedBy = post.likedBy || [];
+    const isLiked = post.likedBy.some(id => (id?.toString?.() ?? id) === userId.toString());
 
     if (isLiked) {
       // Unlike
-      post.likedBy = post.likedBy.filter(id => !id.equals(userId));
-      post.likes = Math.max(0, post.likes - 1);
+      post.likedBy = post.likedBy.filter(id => (id?.toString?.() ?? id) !== userId.toString());
+      post.likes = Math.max(0, (post.likes || 0) - 1);
     } else {
       // Like
       post.likedBy.push(userId);
-      post.likes += 1;
+      post.likes = (post.likes || 0) + 1;
       // Send push notification to post author if not self-like
       if (post.authorId.toString() !== userId.toString()) {
         await createInAppNotification({
@@ -498,14 +498,15 @@ router.post('/:postId/comments/:commentId/like', authenticate, async (req, res) 
     }
 
     const userId = req.user._id;
-    const hasLiked = comment.likedBy.some(id => id.equals(userId));
+    comment.likedBy = comment.likedBy || [];
+    const hasLiked = comment.likedBy.some(id => (id?.toString?.() ?? id) === userId.toString());
 
     if (hasLiked) {
-      comment.likedBy = comment.likedBy.filter(id => !id.equals(userId));
-      comment.likes = Math.max(0, comment.likes - 1);
+      comment.likedBy = comment.likedBy.filter(id => (id?.toString?.() ?? id) !== userId.toString());
+      comment.likes = Math.max(0, (comment.likes || 0) - 1);
     } else {
       comment.likedBy.push(userId);
-      comment.likes += 1;
+      comment.likes = (comment.likes || 0) + 1;
     }
 
     await post.save();
@@ -544,12 +545,12 @@ router.get('/my-posts', authenticate, async (req, res) => {
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       contentEditedAt: post.contentEditedAt || null,
-      likes: post.likes,
-      likedBy: post.likedBy.map(id => id.toString()),
-      comments: post.comments.map((comment) => transformComment(post, comment)),
-      tags: post.tags,
+      likes: post.likes || 0,
+      likedBy: (post.likedBy || []).map(id => id.toString()),
+      comments: (post.comments || []).map((comment) => transformComment(post, comment)).filter(Boolean),
+      tags: post.tags || [],
       mood: post.mood,
-      wordCount: post.wordCount,
+      wordCount: post.wordCount || 0,
       isDraft: post.isDraft
     }));
 

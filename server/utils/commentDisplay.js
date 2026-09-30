@@ -1,33 +1,39 @@
 export const getPostAuthorId = (post) => {
+  if (!post) return '';
   const id = post.authorId?._id ?? post.authorId;
-  return id?.toString?.() ?? String(id);
+  return id?.toString?.() ?? (id ? String(id) : '');
 };
 
 export const resolveCommentAuthorName = (post, comment) => {
-  const commentAuthorId = comment.authorId?.toString?.() ?? String(comment.authorId);
-  if (post.isAnonymous && commentAuthorId === getPostAuthorId(post)) {
+  if (!comment) return 'Anonymous';
+  const commentAuthorId = comment.authorId?._id?.toString?.() ?? comment.authorId?.toString?.() ?? (comment.authorId ? String(comment.authorId) : '');
+  if (post?.isAnonymous && commentAuthorId && commentAuthorId === getPostAuthorId(post)) {
     return 'Author';
   }
-  return comment.authorName;
+  return comment.authorName || 'Anonymous';
 };
 
 export const commentAuthorNameForUser = (post, userId, displayName) => {
   const authorId = getPostAuthorId(post);
-  if (post.isAnonymous && userId.toString() === authorId) {
+  if (post?.isAnonymous && userId && userId.toString() === authorId) {
     return 'Author';
   }
   return displayName;
 };
 
-export const transformComment = (post, comment) => ({
-  id: comment.id,
-  postId: post._id,
-  authorId: comment.authorId,
-  authorName: resolveCommentAuthorName(post, comment),
-  content: comment.content,
-  parentId: comment.parentId || null,
-  createdAt: comment.createdAt,
-  likes: comment.likes,
-  likedBy: (comment.likedBy || []).map((id) => id.toString()),
-  reactions: comment.reactions || []
-});
+export const transformComment = (post, comment) => {
+  if (!comment) return null;
+  return {
+    id: comment.id || comment._id?.toString?.() || '',
+    postId: post?._id,
+    authorId: comment.authorId,
+    authorName: resolveCommentAuthorName(post, comment),
+    content: comment.content || '',
+    parentId: comment.parentId || null,
+    createdAt: comment.createdAt,
+    likes: comment.likes || 0,
+    likedBy: (comment.likedBy || []).map((id) => id.toString()),
+    reactions: comment.reactions || []
+  };
+};
+

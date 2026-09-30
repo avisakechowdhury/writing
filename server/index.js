@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 import connectDB from './config/database.js';
 import authRoutes from './routes/auth.js';
 import postRoutes from './routes/posts.js';
@@ -70,23 +71,38 @@ const io = new Server(server, {
 connectDB();
 
 // Enhanced Helmet configuration for security
+const cspDirectives = {
+  defaultSrc: ["'self'"],
+  styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+  fontSrc: ["'self'", "https://fonts.gstatic.com"],
+  scriptSrc: ["'self'"],
+  imgSrc: ["'self'", "data:", "https:"],
+  connectSrc: ["'self'", ...uniqueOrigins],
+  frameSrc: ["'none'"],
+  objectSrc: ["'none'"]
+};
+
+// Only add upgradeInsecureRequests in production (null is not valid)
+if (process.env.NODE_ENV === 'production') {
+  cspDirectives.upgradeInsecureRequests = [];
+}
+
 app.use(helmet({
   contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      // ✅ FIXED: Spreading the array correctly
-      connectSrc: ["'self'", ...uniqueOrigins],
-      frameSrc: ["'none'"],
-      objectSrc: ["'none'"],
-      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
-    }
+    directives: cspDirectives
   },
   crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  // Enable HSTS in production (tell browsers to always use HTTPS)
+  strictTransportSecurity: process.env.NODE_ENV === 'production'
+    ? { maxAge: 63072000, includeSubDomains: true, preload: true }
+    : false,
+  // Prevent MIME type sniffing
+  xContentTypeOptions: true,
+  // Prevent clickjacking
+  xFrameOptions: { action: 'sameorigin' },
+  // Prevent cross-domain policy file requests
+  xPermittedCrossDomainPolicies: { permittedPolicies: 'none' }
 }));
 
 app.use(cors({
@@ -147,6 +163,24 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Input sanitization middleware
 app.use(sanitizeInput);
+
+// Block API routes (except health and SEO) when the database is down
+app.use((req, res, next) => {
+  if (req.path === '/api/health' || req.path.startsWith('/api/seo') || !req.path.startsWith('/api')) return next();
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      message: 'Database is currently unavailable. If using MongoDB Atlas, please ensure your current IP address is whitelisted in MongoDB Atlas Network Access (or 0.0.0.0/0 for development).',
+      code: 'DATABASE_UNAVAILABLE'
+    });
+  }
+  next();
+});
+
+// Prevent search engines from indexing API responses
+app.use('/api', (req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  next();
+});
 
 // Make io available to routes
 app.set('io', io);
@@ -214,9 +248,19 @@ app.get('/api/seo/post/:id', async (req, res) => {
   }
 });
 
-// Health check
+// Health check — always returns 200 so the frontend can distinguish
+// "server alive, DB down" from "server unreachable".
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  const dbState = mongoose.connection.readyState;
+  const dbStates = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+  const dbConnected = dbState === 1;
+
+  res.status(200).json({
+    status: dbConnected ? 'OK' : 'DEGRADED',
+    database: dbStates[dbState] || 'unknown',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Dynamic sitemap generation for SEO
