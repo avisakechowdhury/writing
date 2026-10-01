@@ -46,16 +46,41 @@ if (clientUrls.length === 0) {
 }
 
 // Add static origins that should always be allowed
-const allAllowedOrigins = [
-  ...clientUrls,
+const staticOrigins = [
   "https://anonwriter.vercel.app",
   "https://www.writeanon.in",
   "https://writeanon.in",
   "http://localhost:5173"
 ];
 
+// Combine and auto-generate www/non-www variants for every origin
+const allAllowedOrigins = [...clientUrls, ...staticOrigins];
+
+// For each origin, ensure both www and non-www variants exist
+const expandedOrigins = new Set();
+allAllowedOrigins.forEach(url => {
+  expandedOrigins.add(url);
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.startsWith('www.')) {
+      // Add non-www variant
+      parsed.hostname = parsed.hostname.replace(/^www\./, '');
+      expandedOrigins.add(parsed.origin);
+    } else if (!parsed.hostname.includes('localhost')) {
+      // Add www variant
+      parsed.hostname = `www.${parsed.hostname}`;
+      expandedOrigins.add(parsed.origin);
+    }
+  } catch {
+    // Skip invalid URLs
+  }
+});
+
 // Remove duplicates using Set
-const uniqueOrigins = [...new Set(allAllowedOrigins)];
+const uniqueOrigins = [...expandedOrigins];
+
+// Log allowed origins at startup for debugging
+console.log('Allowed CORS origins:', uniqueOrigins);
 // -------------------------------------------------------------
 
 const server = createServer(app);
