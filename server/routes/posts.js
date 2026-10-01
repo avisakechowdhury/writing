@@ -105,6 +105,55 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get user's posts — MUST be before /:id to avoid treating 'my-posts' as a post ID
+router.get('/my-posts', authenticate, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const posts = await Post.find({ authorId: req.user._id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const transformedPosts = posts.map(post => ({
+      id: post._id,
+      title: post.title,
+      content: post.content,
+      authorId: post.authorId,
+      authorName: post.authorName,
+      isAnonymous: post.isAnonymous,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      contentEditedAt: post.contentEditedAt || null,
+      likes: post.likes || 0,
+      likedBy: (post.likedBy || []).map(id => id.toString()),
+      comments: (post.comments || []).map((comment) => transformComment(post, comment)).filter(Boolean),
+      tags: post.tags || [],
+      mood: post.mood,
+      wordCount: post.wordCount || 0,
+      isDraft: post.isDraft
+    }));
+
+    const total = await Post.countDocuments({ authorId: req.user._id });
+
+    res.json({
+      posts: transformedPosts,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get user posts error:', error);
+    res.status(500).json({ message: 'Server error while fetching user posts' });
+  }
+});
+
 // Get single post (for sharing)
 router.get('/:id', async (req, res) => {
   try {
@@ -346,6 +395,7 @@ router.post('/:id/like', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
+    const userId = req.user._id;
     post.likedBy = post.likedBy || [];
     const isLiked = post.likedBy.some(id => (id?.toString?.() ?? id) === userId.toString());
 
@@ -522,54 +572,7 @@ router.post('/:postId/comments/:commentId/like', authenticate, async (req, res) 
   }
 });
 
-// Get user's posts
-router.get('/my-posts', authenticate, async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    const posts = await Post.find({ authorId: req.user._id })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    const transformedPosts = posts.map(post => ({
-      id: post._id,
-      title: post.title,
-      content: post.content,
-      authorId: post.authorId,
-      authorName: post.authorName,
-      isAnonymous: post.isAnonymous,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
-      contentEditedAt: post.contentEditedAt || null,
-      likes: post.likes || 0,
-      likedBy: (post.likedBy || []).map(id => id.toString()),
-      comments: (post.comments || []).map((comment) => transformComment(post, comment)).filter(Boolean),
-      tags: post.tags || [],
-      mood: post.mood,
-      wordCount: post.wordCount || 0,
-      isDraft: post.isDraft
-    }));
-
-    const total = await Post.countDocuments({ authorId: req.user._id });
-
-    res.json({
-      posts: transformedPosts,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Get user posts error:', error);
-    res.status(500).json({ message: 'Server error while fetching user posts' });
-  }
-});
+// (my-posts route moved above /:id to prevent Express from matching 'my-posts' as a post ID)
 
 // Catch-all route for invalid post requests
 router.get('*', (req, res) => {
